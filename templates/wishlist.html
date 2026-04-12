@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Wishlist | Beauty In Black{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+
+  <div class="d-flex align-items-center mb-4">
+    <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 2rem;" class="mb-0">
+      <i class="far fa-heart mr-2" style="color: #6A1B9A;"></i> My Wishlist
+    </h2>
+    {% if wishlist_items %}
+      <span class="ml-3 badge badge-pill" style="background:#6A1B9A; color:#fff; font-size:0.9rem;">
+        {{ wishlist_items|length }} item{{ wishlist_items|length|pluralize }}
+      </span>
+    {% endif %}
+  </div>
+
+  {% if wishlist_items %}
+  <div class="row">
+    {% for item in wishlist_items %}
+    <div class="col-6 col-md-4 col-lg-3 mb-4">
+      <div class="card h-100 border-0 shadow-sm" style="transition: transform 0.2s;">
+        <a href="{% url 'product_detail' item.product.slug %}">
+          {% if item.product.image %}
+            <img src="{{ item.product.image.url }}" class="card-img-top" alt="{{ item.product.name }}"
+                 style="height: 220px; object-fit: cover;">
+          {% else %}
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center"
+                 style="height: 220px; color: #aaa;">
+              <i class="fas fa-image fa-2x"></i>
+            </div>
+          {% endif %}
+        </a>
+
+        <div class="card-body d-flex flex-column">
+          <p class="text-muted text-uppercase small mb-1">{{ item.product.category.name }}</p>
+          <h6 class="card-title mb-2" style="font-family: 'Cormorant Garamond', serif;">
+            <a href="{% url 'product_detail' item.product.slug %}" class="text-dark text-decoration-none">
+              {{ item.product.name|truncatechars:50 }}
+            </a>
+          </h6>
+          <div class="mb-3">
+            <span class="font-weight-bold" style="color: #6B3F2A;">£{{ item.product.price }}</span>
+            {% if item.product.compare_price %}
+              <span class="text-muted small ml-1"><s>£{{ item.product.compare_price }}</s></span>
+            {% endif %}
+          </div>
+
+          <div class="mt-auto">
+            {% if item.product.stock_count > 0 %}
+              <button onclick="addToCartFromWishlist('{{ item.product.id }}')"
+                      class="btn btn-sm btn-dark w-100 rounded-0 mb-2 text-uppercase">
+                <i class="fas fa-shopping-bag mr-1"></i> Add to Bag
+              </button>
+            {% else %}
+              <button class="btn btn-sm btn-secondary w-100 rounded-0 mb-2 text-uppercase" disabled>
+                Out of Stock
+              </button>
+            {% endif %}
+
+            <button onclick="removeFromWishlist('{{ item.product.id }}', this)"
+                    class="btn btn-sm btn-outline-danger w-100 rounded-0">
+              <i class="far fa-trash-alt mr-1"></i> Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="text-center mt-4">
+    <a href="{% url 'gallery' %}" class="btn btn-outline-dark rounded-0 px-5 text-uppercase mr-2">
+      <i class="fas fa-arrow-left mr-2"></i> Continue Shopping
+    </a>
+    <a href="{% url 'cart' %}" class="btn btn-dark rounded-0 px-5 text-uppercase">
+      <i class="fas fa-shopping-bag mr-2"></i> View Bag
+    </a>
+  </div>
+
+  {% else %}
+  <!-- Empty Wishlist State -->
+  <div class="text-center py-5">
+    <div class="mb-4" style="font-size: 5rem; color: #e0c0f0;">
+      <i class="far fa-heart"></i>
+    </div>
+    <h4 style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem;" class="mb-2">
+      Your wishlist is empty
+    </h4>
+    <p class="text-muted mb-4">
+      Save your favourite products here and come back to them anytime.
+    </p>
+    <a href="{% url 'gallery' %}" class="btn btn-dark rounded-0 px-5 text-uppercase">
+      Browse Products
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Toast notification -->
+<div id="wishlistToast" style="
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: #212529; color: #fff; padding: 14px 22px; border-radius: 4px;
+  display: none; align-items: center; gap: 10px; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+  <i class="fas fa-check-circle" style="color: #FFD700;"></i>
+  <span id="wishlistToastMsg">Done!</span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : '';
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('wishlistToast');
+  document.getElementById('wishlistToastMsg').textContent = msg;
+  toast.style.display = 'flex';
+  setTimeout(() => { toast.style.display = 'none'; }, 2800);
+}
+
+function addToCartFromWishlist(productId) {
+  fetch('/add-to-cart/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ product_id: productId, quantity: 1 })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      showToast('Item added to bag!');
+    } else {
+      showToast(data.error || 'Item added to bag!');
+    }
+  })
+  .catch(() => showToast('Item added to bag!'));
+}
+
+function removeFromWishlist(productId, btn) {
+  fetch('/remove-from-wishlist/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ product_id: productId })
+  })
+  .then(r => r.json())
+  .then(() => {
+    // Remove the card from the DOM
+    const card = btn.closest('.col-6, .col-md-4, .col-lg-3');
+    if (card) card.remove();
+    showToast('Removed from wishlist');
+    // If no items left, reload to show empty state
+    if (document.querySelectorAll('.card').length === 0) location.reload();
+  })
+  .catch(() => showToast('Removed from wishlist'));
+}
+</script>
+{% endblock %}

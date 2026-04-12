@@ -1,0 +1,151 @@
+/* ================================================================
+   BEAUTY IN BLACK — custom.css
+   Light mode:  06:00 – 23:59  (applied via JS on <html> tag)
+   Dark mode:   00:01 – 05:59  (applied via JS on <html> tag)
+   Fallback:    Light mode
+================================================================ */
+:root {
+    /* --- CONSTANTS (Always the same) --- */
+    --bib-gold:          #C9A96E;
+    --bib-gold-bright:   #FFD700;
+    --bib-brown-dark:    #2C1810;
+    --bib-brown-mid:     #6B3F2A;
+    --bib-purple:        #6A1B9A;
+    
+    /* --- THEME TOKENS (Light Mode Default) --- */
+    --bg-page:           #FAF8F5;
+    --bg-card:           #FFFFFF;
+    --bg-nav:            #FFFFFF;
+    --bg-footer:         linear-gradient(135deg, #2C1810 0%, #6B3F2A 60%, #C9A96E 100%);
+    
+    --text-primary:      #1A1008;
+    --text-secondary:    #5C4A3A;
+    --text-muted:        #8A7A6A;
+    
+    --border-color:      #E8DDD4;
+    --shadow-md:         0 6px 24px rgba(44,24,16,0.12);
+    --transition:        0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- THEME TOKENS (Dark Mode) --- */
+html[data-theme="dark"] {
+    --bg-page:           #0D0805;
+    --bg-card:           #1A0F0A;
+    --bg-nav:            #0D0805;
+    
+    --text-primary:      #F5EDD8;
+    --text-secondary:    #C4A882;
+    --text-muted:        #8A7A6A;
+    
+    --border-color:      #4A3728;
+    --shadow-md:         0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   GLOBAL STYLES
+──────────────────────────────────────────────────────────────── */
+body {
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: 'Jost', sans-serif;
+    transition: background-color var(--transition), color var(--transition);
+}
+
+.bib-section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   NAVBAR & HEADER
+──────────────────────────────────────────────────────────────── */
+.bib-header {
+    background: var(--bg-nav);
+    border-bottom: 1px solid var(--border-color);
+    transition: background var(--transition), border var(--transition);
+}
+
+.logo-wordmark {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-weight: 500;
+    color: var(--text-primary) !important;
+}
+
+.bib-nav .nav-link {
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-primary) !important;
+    position: relative;
+}
+
+.bib-nav .nav-link::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; width: 0; height: 1px;
+    background: var(--bib-gold);
+    transition: width 0.3s;
+}
+.bib-nav .nav-link:hover::after { width: 100%; }
+
+/* ────────────────────────────────────────────────────────────────
+   PRODUCT CARDS (Complexity added here)
+──────────────────────────────────────────────────────────────── */
+.bib-prd-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 0;
+    overflow: hidden;
+    transition: all var(--transition);
+}
+
+.bib-prd-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--bib-gold);
+}
+
+.bib-prd-img-wrap {
+    position: relative;
+    aspect-ratio: 1/1.2;
+    background: #f1f1f1;
+}
+
+html[data-theme="dark"] .bib-prd-img-wrap { background: #120A07; }
+
+.bib-prd-add-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    transition: all 0.2s;
+}
+
+.bib-prd-add-btn:hover {
+    background: var(--bib-brown-dark);
+    color: #fff;
+}
+
+html[data-theme="dark"] .bib-prd-add-btn:hover {
+    background: var(--bib-gold);
+    color: #1A1008;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   FOOTER
+──────────────────────────────────────────────────────────────── */
+.bib-footer {
+    background: var(--bg-footer);
+    color: #F5EDD8;
+    border-top: 3px solid var(--bib-gold);
+}
+
+.bib-footer a { color: rgba(245, 237, 216, 0.7); transition: color 0.2s; }
+.bib-footer a:hover { color: #fff; text-decoration: none; }

@@ -1,0 +1,20 @@
+# Local Environment Variables (Crucial for security)
+.env
+
+# Virtual Environment
+.venv/
+venv/
+
+# Database (You don't want your local data on GitHub)
+db.sqlite3
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Stripe CLI / Executables (Keep your repo clean of binaries)
+stripe.exe
+*.exe
+
+# User Uploads / Media
+media/
