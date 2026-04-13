@@ -1,7 +1,8 @@
+# Single-page architecture: index.html is the only template.
+# Cart, wishlist, checkout, orders all run via AJAX JSON endpoints.
+
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db import models
 from django.views import View
-from django.core.paginator import Paginator
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
@@ -9,310 +10,183 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.core.mail import send_mail
-from django.views.generic import TemplateView
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 import stripe
 import json
 
-from store.models import Product, Category, Brand, Cart, Order, Customer, Wishlist
+from store.models import Product, Category, Brand, Cart, Order, Customer, Wishlist, Review
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-# ─── STATIC & INFO VIEWS ────────────────────────────────────
-class AboutUsView(TemplateView):
-    template_name = 'about_us.html'
+# ── STATIC PAGES ─────────────────────────────────────────────────────
 
-class DeliveryInfoView(TemplateView):
-    template_name = 'delivery_info.html'
+def contact(request):
+    return render(request, 'contact.html')
 
-class ReturnsPolicyView(TemplateView):
-    template_name = 'returns_policy.html'
+def faqs(request):
+    return render(request, 'faqs.html')
 
-class FAQsView(TemplateView):
-    template_name = 'faqs.html'
+def returns_policy(request):
+    return render(request, 'returns_policy.html')
 
-class PrivacyPolicyView(TemplateView):
-    template_name = 'privacy_policy.html'
+def cookie_policy(request):
+    return render(request, 'cookie_policy.html')
 
-class CookiePolicyView(TemplateView):
-    template_name = 'cookie_policy.html'
+def about_us(request):
+    return render(request, 'about_us.html')
 
-class TermsView(TemplateView):
-    template_name = 'terms.html'
+def sitemap(request):
+    return render(request, 'sitemap.html')
 
-class SitemapView(TemplateView):
-    template_name = 'sitemap.html'
+def terms(request):
+    return render(request, 'terms.html')
 
-# ─── CONTACT VIEW ──────────────────────────────────────────
-class ContactView(View):
-    def get(self, request):
-        return render(request, 'contact.html')
+def orders(request):
+    return render(request, 'orders.html')
 
-    def post(self, request):
-        return render(request, 'contact.html', {'contact_success': True})
+def wishlist(request):
+    return redirect('homepage')
 
-# ─── MAIN STORE VIEWS ───────────────────────────────────────
+def cart(request):
+    return redirect('homepage')
+
+# ── HELPERS ──────────────────────────────────────────────────────────
+
+def _get_csrf(request):
+    from django.middleware.csrf import get_token
+    return get_token(request)
+
+
+def _cart_count(user):
+    if user.is_authenticated:
+        return Cart.objects.filter(customer=user).count()
+    return 0
+
+
+# ── INDEX (single page) ──────────────────────────────────────────────
+
 class Index(View):
     def get(self, request):
-        categories = Category.objects.all()[:4]
-        products = Product.objects.all().order_by('-id')[:8]
-        random_product = Product.objects.order_by('?').first()
+        categories   = Category.objects.all()
+        all_products = Product.objects.select_related('category', 'brand').all()
 
-        return render(request, 'index.html', {
-            'products': products,
-            'categories': categories,
-            'random_product': random_product,
-        })
+        q           = request.GET.get('q', '').strip()
+        category_id = request.GET.get('category', '')
+        gender      = request.GET.get('gender', '')
 
-class GalleryView(View):
-    def get(self, request):
-        products = Product.objects.select_related('category', 'brand').all()
-
-        category_slug = request.GET.get('category')
-        category = None
-        related_categories = None
-
-        if category_slug:
-            category = Category.objects.filter(slug=category_slug).first()
-            if category:
-                products = products.filter(category=category)
-                parent = category.parent
-                if parent:
-                    related_categories = Category.objects.filter(parent=parent)
-                else:
-                    related_categories = Category.objects.filter(parent__isnull=True)
-
-        q = request.GET.get('q')
         if q:
-            products = products.filter(
-                models.Q(name__icontains=q) |
-                models.Q(short_description__icontains=q) |
-                models.Q(description__icontains=q) |
-                models.Q(category__name__icontains=q) |
-                models.Q(brand__name__icontains=q)
+            all_products = all_products.filter(name__icontains=q)
+        if category_id:
+            all_products = all_products.filter(category_id=category_id)
+        if gender:
+            all_products = all_products.filter(gender=gender)
+
+        cart_product_ids = []
+        cart_items       = []
+        cart_total       = 0
+        if request.user.is_authenticated:
+            user_cart        = Cart.objects.filter(customer=request.user).select_related('product')
+            cart_product_ids = list(user_cart.values_list('product_id', flat=True))
+            cart_items       = [
+                {
+                    'product':  item.product,
+                    'quantity': item.quantity,
+                    'subtotal': item.product.price * item.quantity,
+                }
+                for item in user_cart
+            ]
+            cart_total = sum(i['subtotal'] for i in cart_items)
+
+        wishlist_product_ids = []
+        if request.user.is_authenticated:
+            wishlist_product_ids = list(
+                Wishlist.objects.filter(customer=request.user).values_list('product_id', flat=True)
             )
 
-        selected_brands = request.GET.getlist('brand')
-        if selected_brands:
-            products = products.filter(brand__slug__in=selected_brands)
+        selected_product = None
+        product_id_param = request.GET.get('product')
+        if product_id_param:
+            selected_product = Product.objects.filter(id=product_id_param).first()
 
-        min_price = request.GET.get('min_price')
-        max_price = request.GET.get('max_price')
-        if min_price:
-            products = products.filter(price__gte=min_price)
-        if max_price:
-            products = products.filter(price__lte=max_price)
-
-        sort = request.GET.get('sort')
-        if sort == 'price-asc':
-            products = products.order_by('price', 'id')
-        elif sort == 'price-desc':
-            products = products.order_by('-price', '-id')
-        elif sort == 'name':
-            products = products.order_by('name', 'id')
-        elif sort == 'newest':
-            products = products.order_by('-id')
-
-        paginator = Paginator(products, 12)
-        page_number = request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-
-        return render(request, 'product_gallery.html', {
-            'products': page_obj.object_list,
-            'page_obj': page_obj,
-            'paginator': paginator,
-            'category': category,
-            'categories': Category.objects.filter(parent__isnull=True),
-            'brands': Brand.objects.all().order_by('name'),
-            'related_categories': related_categories,
-            'selected_brands': selected_brands,
-            'selected_category_slug': category_slug,
-            'min_price': min_price,
-            'max_price': max_price,
-            'sort': sort,
-            'q': q,
+        return render(request, 'index.html', {
+            'products':            all_products,
+            'categories':          categories,
+            'selected_category':   category_id,
+            'selected_gender':     gender,
+            'q':                   q,
+            'cart_product_ids':    cart_product_ids,
+            'cart_items':          cart_items,
+            'cart_total':          cart_total,
+            'wishlist_product_ids': wishlist_product_ids,
+            'selected_product':    selected_product,
+            'stripe_public_key':   settings.STRIPE_PUBLIC_KEY,
         })
 
-class ProductDetail(View):
-    def get(self, request, slug):
-        product = get_object_or_404(Product, slug=slug)
-        is_in_stock = product.stock_count > 0
-        return render(request, 'product_detail.html', {
-            'product': product,
-            'is_in_stock': is_in_stock
-        })
 
-# ─── AUTHENTICATION ──────────────────────────────────────────
+# ── AUTH ─────────────────────────────────────────────────────────────
+
 class Signup(View):
     def get(self, request):
         return render(request, 'signup.html')
 
     def post(self, request):
-        d = request.POST
-        if Customer.objects.filter(email=d.get('email')).exists():
-            return render(request, 'signup.html', {'error': "Email exists", 'values': d})
+        d          = request.POST
+        first_name = d.get('firstname', '').strip()
+        last_name  = d.get('lastname', '').strip()
+        phone      = d.get('phone', '').strip()
+        email      = d.get('email', '').strip()
+        password   = d.get('password', '')
+
+        if Customer.objects.filter(email=email).exists():
+            return render(request, 'signup.html', {
+                'error': 'An account with this email already exists.',
+                'values': d,
+            })
+        if not password:
+            return render(request, 'signup.html', {
+                'error': 'Password is required.',
+                'values': d,
+            })
+
         user = Customer.objects.create_user(
-            username=d.get('email'),
-            email=d.get('email'),
-            password=d.get('password'),
-            phone=d.get('phone'),
-            first_name=d.get('firstname'),
-            last_name=d.get('lastname')
+            username=email,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
         )
         login(request, user)
         return redirect('homepage')
+
 
 class Login(View):
     def get(self, request):
         return render(request, 'login.html')
 
     def post(self, request):
-        user = authenticate(username=request.POST.get('email'), password=request.POST.get('password'))
+        email    = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        user     = authenticate(username=email, password=password)
         if user:
             login(request, user)
             return redirect(request.GET.get('next', 'homepage'))
-        return render(request, 'login.html', {'error': 'Invalid credentials'})
+        return render(request, 'login.html', {'error': 'Invalid email or password.'})
 
+
+@login_required
 def logout_view(request):
     logout(request)
-    return redirect('login')
-
-# ─── CART & CHECKOUT ────────────────────────────────────────
-class CartView(View):
-    def get(self, request):
-        if request.user.is_authenticated:
-            cart_items = Cart.objects.filter(customer=request.user).select_related('product')
-            total = sum(item.product.price * item.quantity for item in cart_items)
-        else:
-            cart_items = []
-            total = 0
-        return render(request, 'cart.html', {'cart_items': cart_items, 'total': total})
-
-    def post(self, request):
-        """
-        Handles update-quantity and remove actions submitted from cart.html forms.
-        Both forms POST to /cart/ with hidden fields: product_id and action.
-        """
-        if not request.user.is_authenticated:
-            return redirect('login')
-
-        product_id = request.POST.get('product_id')
-        action = request.POST.get('action')
-        product = get_object_or_404(Product, id=product_id)
-
-        if action == 'remove':
-            Cart.objects.filter(customer=request.user, product=product).delete()
-
-        elif action == 'update':
-            quantity = int(request.POST.get('quantity', 1))
-            if quantity < 1:
-                quantity = 1
-            item, _ = Cart.objects.get_or_create(customer=request.user, product=product)
-            item.quantity = quantity
-            item.save()
-
-        return redirect('cart')
+    return redirect('homepage')
 
 
-@method_decorator(login_required, name='dispatch')
-class CheckOutView(View):
-    def get(self, request):
-        cart_items = Cart.objects.filter(customer=request.user).select_related('product')
-        if not cart_items.exists():
-            return redirect('cart')
-        total = sum(i.product.price * i.quantity for i in cart_items)
-        return render(request, 'checkout.html', {'cart_items': cart_items, 'total': total})
-
-    def post(self, request):
-        request.session['checkout_info'] = {
-            'address': request.POST.get('address'),
-            'phone': request.POST.get('phone')
-        }
-        return redirect('create_checkout_session')
-
-
-@method_decorator(login_required, name='dispatch')
-class CreateCheckoutSession(View):
-    def get(self, request):
-        cart_items = Cart.objects.filter(customer=request.user).select_related('product')
-        if not cart_items.exists():
-            return redirect('cart')
-
-        line_items = [{
-            'price_data': {
-                'currency': 'gbp',
-                'product_data': {'name': i.product.name},
-                'unit_amount': int(round(i.product.price * 100))
-            },
-            'quantity': i.quantity
-        } for i in cart_items]
-
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=line_items,
-            mode='payment',
-            success_url=request.build_absolute_uri('/success/') + '?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=request.build_absolute_uri('/cart/'),
-            metadata={'user_id': str(request.user.id)}
-        )
-        request.session['stripe_session_id'] = session.id
-        return redirect(session.url, code=303)
-
-
-@method_decorator(login_required, name='dispatch')
-class PaymentSuccess(View):
-    def get(self, request):
-        session_id = request.GET.get('session_id')
-        if session_id and session_id == request.session.get('stripe_session_id'):
-            stripe_session = stripe.checkout.Session.retrieve(session_id)
-            if stripe_session.payment_status == 'paid':
-                cart_items = Cart.objects.filter(customer=request.user).select_related('product')
-                info = request.session.get('checkout_info', {})
-                for item in cart_items:
-                    Order.objects.create(
-                        customer=request.user,
-                        product=item.product,
-                        quantity=item.quantity,
-                        price=item.product.price,
-                        address=info.get('address', ''),
-                        phone=info.get('phone', ''),
-                        paid=True
-                    )
-                cart_items.delete()
-                return render(request, 'payment_success.html')
-        return redirect('cart')
-
-
-@method_decorator(login_required, name='dispatch')
-class OrderView(View):
-    def get(self, request):
-        orders = Order.objects.filter(customer=request.user).order_by('-created_at')
-        return render(request, 'orders.html', {'orders': orders})
-
-
-# ─── WISHLIST ────────────────────────────────────────────────
-class WishlistView(View):
-    def get(self, request):
-        if request.user.is_authenticated:
-            wishlist_items = Wishlist.objects.filter(customer=request.user).select_related('product')
-        else:
-            wishlist_items = []
-        return render(request, 'wishlist.html', {'wishlist_items': wishlist_items})
-
-
-# ─── AJAX ENDPOINTS ──────────────────────────────────────────
+# ── CART AJAX ─────────────────────────────────────────────────────────
 
 def ajax_add_to_cart(request):
-    """
-    Accepts JSON POST: { "product_id": "123", "quantity": 1 }
-    Called from product_detail.html, index.html, and wishlist.html via fetch().
-    Requires login — returns JSON so the page can show a toast without redirecting.
-    """
+    """POST JSON { product_id, quantity }  →  { success, cart_count }"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
-
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'login_required'}, status=401)
 
     try:
         data = json.loads(request.body)
@@ -320,67 +194,316 @@ def ajax_add_to_cart(request):
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 
     product_id = data.get('product_id')
-    quantity = int(data.get('quantity', 1))
+    quantity   = int(data.get('quantity', 1))
 
     if not product_id:
         return JsonResponse({'success': False, 'error': 'Missing product_id'}, status=400)
 
     product = get_object_or_404(Product, id=product_id)
 
-    if product.stock_count < 1:
-        return JsonResponse({'success': False, 'error': 'Out of stock'})
-
-    item, created = Cart.objects.get_or_create(
-        customer=request.user,
-        product=product
-    )
-    if not created:
-        item.quantity += quantity
+    if request.user.is_authenticated:
+        item, created = Cart.objects.get_or_create(customer=request.user, product=product)
+        if not created:
+            item.quantity += quantity
+        else:
+            item.quantity = quantity
+        item.save()
+        cart_count = Cart.objects.filter(customer=request.user).count()
     else:
-        item.quantity = quantity
-    item.save()
+        cart = request.session.get('cart', {})
+        pid  = str(product_id)
+        cart[pid] = cart.get(pid, 0) + quantity
+        request.session['cart'] = cart
+        cart_count = len(cart)
 
-    cart_count = Cart.objects.filter(customer=request.user).count()
     return JsonResponse({'success': True, 'cart_count': cart_count})
 
 
-def ajax_add_to_wishlist(request):
-    """
-    Accepts JSON POST: { "product_id": "123" }
-    """
+def ajax_remove_from_cart(request):
+    """POST JSON { product_id }  →  { success, cart_count, cart_total }"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
-
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'login_required'}, status=401)
 
     try:
         data = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 
-    product_id = data.get('product_id')
-    product = get_object_or_404(Product, id=product_id)
-    _, created = Wishlist.objects.get_or_create(customer=request.user, product=product)
+    product_id = str(data.get('product_id'))
+
+    if request.user.is_authenticated:
+        Cart.objects.filter(customer=request.user, product_id=product_id).delete()
+        cart_items = Cart.objects.filter(customer=request.user).select_related('product')
+        cart_total = sum(i.product.price * i.quantity for i in cart_items)
+        cart_count = cart_items.count()
+    else:
+        cart = request.session.get('cart', {})
+        cart.pop(product_id, None)
+        request.session['cart'] = cart
+        products   = Product.objects.filter(id__in=cart.keys())
+        cart_total = sum(p.price * cart[str(p.id)] for p in products)
+        cart_count = len(cart)
+
+    return JsonResponse({'success': True, 'cart_count': cart_count, 'cart_total': str(cart_total)})
+
+
+def ajax_cart_data(request):
+    """GET  →  full cart item list as JSON (used to refresh cart drawer)"""
+    if request.user.is_authenticated:
+        cart_items = Cart.objects.filter(customer=request.user).select_related('product')
+        items = []
+        for item in cart_items:
+            items.append({
+                'product_id': item.product.id,
+                'name':       item.product.name,
+                'price':      str(item.product.price),
+                'quantity':   item.quantity,
+                'subtotal':   str(item.product.price * item.quantity),
+                'image':      item.product.image.url if item.product.image else '',
+            })
+        total = sum(item.product.price * item.quantity for item in cart_items)
+        return JsonResponse({'items': items, 'total': str(total), 'count': cart_items.count()})
+    else:
+        cart     = request.session.get('cart', {})
+        products = Product.objects.filter(id__in=cart.keys())
+        items    = []
+        total    = 0
+        for p in products:
+            qty      = cart[str(p.id)]
+            subtotal = p.price * qty
+            total   += subtotal
+            items.append({
+                'product_id': p.id,
+                'name':       p.name,
+                'price':      str(p.price),
+                'quantity':   qty,
+                'subtotal':   str(subtotal),
+                'image':      p.image.url if p.image else '',
+            })
+        return JsonResponse({'items': items, 'total': str(total), 'count': len(items)})
+
+
+# ── WISHLIST AJAX ─────────────────────────────────────────────────────
+
+def ajax_add_to_wishlist(request):
+    """POST JSON { product_id }  →  { success, created }"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    product_id = str(data.get('product_id'))
+    product    = get_object_or_404(Product, id=product_id)
+
+    if request.user.is_authenticated:
+        _, created = Wishlist.objects.get_or_create(customer=request.user, product=product)
+    else:
+        wishlist  = request.session.get('wishlist', [])
+        created   = product_id not in wishlist
+        if created:
+            wishlist.append(product_id)
+            request.session['wishlist'] = wishlist
+
     return JsonResponse({'success': True, 'created': created})
 
 
 def ajax_remove_from_wishlist(request):
-    """
-    Accepts JSON POST: { "product_id": "123" }
-    Removes the product from the current user's wishlist.
-    """
+    """POST JSON { product_id }  →  { success }"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
-
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'login_required'}, status=401)
 
     try:
         data = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 
-    product_id = data.get('product_id')
-    Wishlist.objects.filter(customer=request.user, product_id=product_id).delete()
+    product_id = str(data.get('product_id'))
+
+    if request.user.is_authenticated:
+        Wishlist.objects.filter(customer=request.user, product_id=product_id).delete()
+    else:
+        wishlist = request.session.get('wishlist', [])
+        request.session['wishlist'] = [i for i in wishlist if i != product_id]
+
     return JsonResponse({'success': True})
+
+
+# ── ORDERS AJAX ───────────────────────────────────────────────────────
+
+def ajax_orders(request):
+    """GET  →  order list as JSON (used by orders panel on index.html)"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'orders': []})
+
+    orders = Order.objects.filter(customer=request.user).select_related('product').order_by('-created_at')
+    data = []
+    for o in orders:
+        data.append({
+            'id':         o.id,
+            'product':    o.product.name,
+            'quantity':   o.quantity,
+            'price':      str(o.price),
+            'total':      str(o.price * o.quantity),
+            'address':    o.address,
+            'paid':       o.paid,
+            'created_at': o.created_at.strftime('%d %b %Y'),
+        })
+    return JsonResponse({'orders': data})
+
+
+# ── STRIPE CHECKOUT ───────────────────────────────────────────────────
+
+class CreateCheckoutSession(View):
+    def post(self, request):
+        try:
+            body = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            body = {}
+
+        request.session['checkout_info'] = {
+            'address': body.get('address', ''),
+            'phone':   body.get('phone', ''),
+        }
+
+        line_items = []
+
+        if request.user.is_authenticated:
+            cart_items = Cart.objects.filter(customer=request.user).select_related('product')
+            if not cart_items.exists():
+                return JsonResponse({'error': 'Cart is empty'}, status=400)
+            for item in cart_items:
+                line_items.append({
+                    'price_data': {
+                        'currency':     'gbp',
+                        'product_data': {'name': item.product.name},
+                        'unit_amount':  int(round(item.product.price * 100)),
+                    },
+                    'quantity': item.quantity,
+                })
+        else:
+            cart = request.session.get('cart', {})
+            if not cart:
+                return JsonResponse({'error': 'Cart is empty'}, status=400)
+            products = Product.objects.filter(id__in=cart.keys())
+            for p in products:
+                line_items.append({
+                    'price_data': {
+                        'currency':     'gbp',
+                        'product_data': {'name': p.name},
+                        'unit_amount':  int(round(p.price * 100)),
+                    },
+                    'quantity': cart[str(p.id)],
+                })
+
+        customer_email = request.user.email if request.user.is_authenticated else body.get('email', '')
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            customer_email=customer_email or None,
+            success_url=(
+                request.build_absolute_uri('/success/')
+                + '?session_id={CHECKOUT_SESSION_ID}'
+            ),
+            cancel_url=request.build_absolute_uri('/'),
+            metadata={'user_id': str(request.user.id) if request.user.is_authenticated else ''},
+        )
+
+        request.session['stripe_session_id'] = session.id
+        return JsonResponse({'url': session.url})
+
+    def get(self, request):
+        return redirect('homepage')
+
+
+class PaymentSuccess(View):
+    def get(self, request):
+        session_id        = request.GET.get('session_id')
+        stored_session_id = request.session.get('stripe_session_id')
+
+        if not session_id or session_id != stored_session_id:
+            return redirect('homepage')
+
+        try:
+            stripe_session = stripe.checkout.Session.retrieve(session_id)
+        except stripe.error.StripeError:
+            return redirect('homepage')
+
+        if stripe_session.payment_status != 'paid':
+            return redirect('homepage')
+
+        info = request.session.get('checkout_info', {})
+
+        if request.user.is_authenticated:
+            cart_items = Cart.objects.filter(customer=request.user).select_related('product')
+            for item in cart_items:
+                Order.objects.create(
+                    customer=request.user,
+                    product=item.product,
+                    quantity=item.quantity,
+                    price=item.product.price,
+                    address=info.get('address', ''),
+                    phone=info.get('phone', ''),
+                    paid=True,
+                )
+            cart_items.delete()
+
+            try:
+                html_content = render_to_string(
+                    'emails/order_confirmation.html', {'user': request.user}
+                )
+                msg = EmailMultiAlternatives(
+                    subject='Your Order Confirmation – Black Is Beauty',
+                    body='Thank you for your order at Black Is Beauty!',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[request.user.email],
+                )
+                msg.attach_alternative(html_content, 'text/html')
+                msg.send(fail_silently=True)
+            except Exception:
+                pass
+        else:
+            request.session.pop('cart', None)
+
+        request.session.pop('checkout_info', None)
+        request.session.pop('stripe_session_id', None)
+
+        return render(request, 'index.html', {
+            'payment_success':      True,
+            'categories':           Category.objects.all(),
+            'products':             Product.objects.select_related('category', 'brand').all(),
+            'cart_product_ids':     [],
+            'cart_items':           [],
+            'cart_total':           0,
+            'wishlist_product_ids': [],
+            'stripe_public_key':    settings.STRIPE_PUBLIC_KEY,
+        })
+
+
+# ── STRIPE WEBHOOK ────────────────────────────────────────────────────
+
+@csrf_exempt
+@require_POST
+def stripe_webhook(request):
+    payload    = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE', '')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except (ValueError, stripe.error.SignatureVerificationError):
+        return HttpResponse(status=400)
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        if session.get('payment_status') == 'paid':
+            user_id = session.get('metadata', {}).get('user_id')
+            if user_id:
+                Order.objects.filter(customer_id=user_id, paid=False).update(paid=True)
+
+    return HttpResponse(status=200)

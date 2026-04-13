@@ -1,39 +1,30 @@
+# Single-page app: everything lives on index.html
+# AJAX endpoints handle cart / wishlist / checkout dynamically
 from django.urls import path
-from . import views
+from store import views
 
 urlpatterns = [
     path('', views.Index.as_view(), name='homepage'),
-    path('shop/', views.GalleryView.as_view(), name='gallery'),
-    path('product/<slug:slug>/', views.ProductDetail.as_view(), name='product_detail'),
-    
-    # Auth
     path('signup/', views.Signup.as_view(), name='signup'),
     path('login/', views.Login.as_view(), name='login'),
     path('logout/', views.logout_view, name='logout'),
-    
-    # Customer Actions
-    path('cart/', views.CartView.as_view(), name='cart'),
-    path('wishlist/', views.WishlistView.as_view(), name='wishlist'),
-    path('checkout/', views.CheckOutView.as_view(), name='checkout'),
-    path('orders/', views.OrderView.as_view(), name='orders'),
-    
-    # Stripe
+    path('contact/', views.contact, name='contact'),
+    path('faqs/', views.faqs, name='faqs'),
+    path('orders/', views.orders, name='orders'),
+    path('returns-policy/', views.returns_policy, name='returns_policy'),
+    path('cookie-policy/', views.cookie_policy, name='cookie_policy'),
+    path('about/', views.about_us, name='about_us'),
+    path('sitemap/', views.sitemap, name='sitemap'),
+    path('terms/', views.terms, name='terms'),
+    path('wishlist/', views.wishlist, name='wishlist'),
+    path('cart/', views.cart, name='cart'),
+    path('ajax-add-to-cart/', views.ajax_add_to_cart, name='ajax_add_to_cart'),
+    path('ajax-remove-from-cart/', views.ajax_remove_from_cart, name='ajax_remove_from_cart'),
+    path('ajax-cart-data/', views.ajax_cart_data, name='ajax_cart_data'),
+    path('ajax-add-to-wishlist/', views.ajax_add_to_wishlist, name='ajax_add_to_wishlist'),
+    path('ajax-remove-from-wishlist/', views.ajax_remove_from_wishlist, name='ajax_remove_from_wishlist'),
+    path('ajax-orders/', views.ajax_orders, name='ajax_orders'),
     path('create-checkout-session/', views.CreateCheckoutSession.as_view(), name='create_checkout_session'),
     path('success/', views.PaymentSuccess.as_view(), name='payment_success'),
-    
-    # Static / Info Pages
-    path('faqs/', views.FAQsView.as_view(), name='faqs'),
-    path('about/', views.AboutUsView.as_view(), name='about_us'),
-    path('delivery/', views.DeliveryInfoView.as_view(), name='delivery_info'),
-    path('returns/', views.ReturnsPolicyView.as_view(), name='returns_policy'),
-    path('privacy/', views.PrivacyPolicyView.as_view(), name='privacy_policy'), # Kept this one
-    path('cookies/', views.CookiePolicyView.as_view(), name='cookie_policy'),
-    path('terms/', views.TermsView.as_view(), name='terms'),
-    path('sitemap/', views.SitemapView.as_view(), name='sitemap'),
-    path('contact/', views.ContactView.as_view(), name='contact'),
-    
-    # AJAX
-    path('add-to-cart/', views.ajax_add_to_cart, name='ajax_add_to_cart'),
-    path('add-to-wishlist/', views.ajax_add_to_wishlist, name='ajax_add_to_wishlist'),
-    path('remove-from-wishlist/', views.ajax_remove_from_wishlist, name='ajax_remove_from_wishlist'),  # NEW
+    path('stripe-webhook/', views.stripe_webhook, name='stripe_webhook'),
 ]
