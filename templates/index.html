@@ -1,343 +1,291 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Black Is Beauty | Premium Afro Hair & Beauty Products UK{% endblock %}
+{% block title %}Beauty in Black | Premium Afro Hair & Beauty Products UK{% endblock %}
 
 {% block content %}
-<style>
-/* ── HOMEPAGE STYLES ─────────────────────────────────────── */
-.hero-slide {
-    min-height: 520px; display: flex !important; align-items: center;
-    background: linear-gradient(135deg, #2C1810 0%, #6B3F2A 40%, #C9A96E 100%);
-    position: relative; overflow: hidden;
-}
-.hero-slide::before {
-    content: ''; position: absolute; inset: 0;
-    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23C9A96E' fill-opacity='0.06'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-}
-.hero-content { position: relative; z-index: 2; }
-.hero-eyebrow { font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 12px; }
-.hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 300; color: #fff; line-height: 1.1; margin-bottom: 18px; }
-.hero-title em { font-style: italic; color: var(--gold); }
-.hero-subtitle { font-family: 'Jost', sans-serif; font-size: 0.9rem; font-weight: 300; letter-spacing: 0.08em; color: rgba(255,255,255,0.75); margin-bottom: 32px; }
-.btn-hero-primary { background: var(--gold); color: var(--brown-dark); border: none; border-radius: 0; font-family: 'Jost', sans-serif; font-size: 0.78rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; padding: 14px 36px; transition: all 0.25s; display: inline-block; }
-.btn-hero-primary:hover { background: #fff; color: var(--brown-dark); text-decoration: none; }
-.btn-hero-outline { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.5); border-radius: 0; font-family: 'Jost', sans-serif; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 14px 36px; margin-left: 12px; transition: all 0.25s; display: inline-block; }
-.btn-hero-outline:hover { border-color: var(--gold); color: var(--gold); text-decoration: none; }
-.section-header { text-align: center; margin-bottom: 40px; }
-.section-header .eyebrow { font-family: 'Jost', sans-serif; font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 8px; }
-.section-header h2 { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 400; color: var(--brown-dark); margin-bottom: 12px; }
-.section-header .divider { width: 48px; height: 1px; background: var(--gold); margin: 0 auto 16px; display: block; }
-.section-header p { font-size: 0.88rem; color: var(--text-light); max-width: 480px; margin: 0 auto; line-height: 1.7; }
-.promo-strip { background: var(--gold); padding: 0; overflow: hidden; }
-.promo-strip-inner { display: flex; justify-content: space-around; align-items: stretch; }
-.promo-strip-item { flex: 1; text-align: center; padding: 14px 20px; border-right: 1px solid rgba(44,24,16,0.15); font-family: 'Jost', sans-serif; font-size: 0.78rem; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brown-dark); display: flex; align-items: center; justify-content: center; gap: 8px; }
-.promo-strip-item:last-child { border-right: none; }
-.section-categories { padding: 60px 0; background: var(--warm-white); }
-.cat-card { position: relative; overflow: hidden; display: block; height: 280px; background: var(--cream); }
-.cat-card .cat-bg { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 0.5s ease; }
-.cat-card:hover .cat-bg { transform: scale(1.06); }
-.cat-card .cat-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(44,24,16,0.85) 0%, rgba(44,24,16,0.1) 60%); }
-.cat-card .cat-label { position: absolute; bottom: 0; left: 0; right: 0; padding: 24px 20px; color: #fff; }
-.cat-card .cat-label h4 { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 400; margin-bottom: 4px; }
-.cat-card .cat-label span { font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-light); }
-.cat-card .cat-label span::after { content: ' →'; }
-.section-products { padding: 60px 0; }
-.section-products.bg-cream { background: var(--cream); }
-.prd-card { background: #fff; border: 1px solid var(--border); transition: box-shadow 0.2s, transform 0.2s; position: relative; overflow: hidden; }
-.prd-card:hover { box-shadow: 0 8px 32px rgba(44,24,16,0.1); transform: translateY(-2px); }
-.prd-card .badge-label { position: absolute; top: 12px; left: 12px; font-family: 'Jost', sans-serif; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; z-index: 2; }
-.badge-new { background: var(--brown-dark); color: var(--gold-light); }
-.badge-hot { background: var(--gold); color: var(--brown-dark); }
-.prd-img-wrap { height: 230px; overflow: hidden; background: var(--cream); display: flex; align-items: center; justify-content: center; }
-.prd-img-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
-.prd-card:hover .prd-img-wrap img { transform: scale(1.04); }
-.prd-body { padding: 16px; }
-.prd-category { font-family: 'Jost', sans-serif; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-light); margin-bottom: 4px; }
-.prd-name { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-weight: 500; color: var(--brown-dark); margin-bottom: 8px; line-height: 1.3; }
-.prd-price { font-family: 'Jost', sans-serif; font-size: 0.9rem; font-weight: 500; color: var(--brown-mid); }
-.prd-actions { display: flex; gap: 8px; margin-top: 12px; }
-.btn-add-cart { flex: 1; background: var(--brown-dark); color: var(--gold-light); border: none; border-radius: 0; font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px; transition: background 0.2s; cursor: pointer; }
-.btn-add-cart:hover { background: var(--brown-mid); }
-.btn-wishlist { width: 40px; background: transparent; border: 1px solid var(--border); color: var(--text-light); font-size: 0.9rem; transition: all 0.2s; cursor: pointer; }
-.btn-wishlist:hover { border-color: var(--rose); color: var(--rose); }
-.section-reviews { padding: 60px 0; background: var(--brown-dark); }
-.review-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(201,169,110,0.2); padding: 28px; height: 100%; }
-.review-stars { color: var(--gold); font-size: 0.85rem; margin-bottom: 14px; }
-.review-text { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-style: italic; color: rgba(255,255,255,0.85); line-height: 1.7; margin-bottom: 20px; }
-.review-author { font-family: 'Jost', sans-serif; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
-.review-verified { font-size: 0.68rem; color: rgba(201,169,110,0.6); margin-top: 2px; }
-.section-newsletter { padding: 70px 0; background: var(--brown-dark); position: relative; overflow: hidden; }
-.newsletter-title { font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; font-weight: 300; color: #fff; margin-bottom: 10px; }
-.newsletter-sub { font-size: 0.85rem; color: rgba(232,213,176,0.7); margin-bottom: 0; font-weight: 300; }
-.newsletter-form .form-control { border-radius: 0; border: 1px solid rgba(201,169,110,0.4); background: rgba(255,255,255,0.06); color: #fff; height: 48px; font-size: 0.85rem; padding: 0 18px; }
-.newsletter-form .form-control::placeholder { color: rgba(232,213,176,0.4); }
-.newsletter-form .form-control:focus { border-color: var(--gold); box-shadow: none; background: rgba(255,255,255,0.1); }
-.btn-newsletter { background: var(--gold); color: var(--brown-dark); border: none; border-radius: 0; height: 48px; padding: 0 28px; font-family: 'Jost', sans-serif; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; white-space: nowrap; transition: background 0.2s; }
-.btn-newsletter:hover { background: var(--gold-light); }
-.bib-social-section { padding: 60px 0; background: var(--warm-white); }
-.btn-view-all { display: inline-block; border: 1px solid var(--brown-dark); color: var(--brown-dark); font-family: 'Jost', sans-serif; font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 12px 32px; border-radius: 0; transition: all 0.25s; }
-.btn-view-all:hover { background: var(--brown-dark); color: var(--gold-light); text-decoration: none; }
-.prd-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--cream) 0%, var(--border) 100%); font-family: 'Cormorant Garamond', serif; font-size: 0.8rem; color: var(--text-light); letter-spacing: 0.06em; text-align: center; padding: 10px; }
-</style>
 
-<!-- ─── HERO SLIDER ────────────────────────────────────────── -->
-<section>
+<!-- ══ PAYMENT SUCCESS BANNER ═════════════════════════════════ -->
+{% if payment_success %}
+<div style="background:linear-gradient(135deg,#2A4A28,#4A7A48);padding:40px;text-align:center;margin-bottom:40px;border:1px solid #5A9A58;">
+    <i class="fas fa-check-circle" style="font-size:2.5rem;color:#90C090;margin-bottom:12px;display:block;"></i>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:#fff;margin-bottom:8px;">Order Confirmed!</h2>
+    <p style="color:rgba(255,255,255,0.8);font-size:0.9rem;margin-bottom:20px;">
+        Thank you for shopping with Black Is Beauty. A confirmation email is on its way to you.
+    </p>
+    <a href="{% url 'homepage' %}" style="display:inline-block;background:#C9A96E;color:#2C1810;font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.14em;text-transform:uppercase;padding:12px 32px;">
+        Continue Shopping
+    </a>
+</div>
+{% endif %}
+
+<!-- ══ HERO CAROUSEL ══════════════════════════════════════════ -->
+<section class="hero-slider" style="margin: -24px -15px 0;">
     <div id="heroCarousel" class="carousel slide" data-ride="carousel" data-interval="5000">
         <div class="carousel-inner">
+
+            <!-- Slide 1 -->
             <div class="carousel-item active">
                 <div class="hero-slide">
                     <div class="container">
                         <div class="row align-items-center">
-                            <div class="col-md-6 hero-content" style="padding: 80px 0;">
+                            <div class="col-md-6 hero-content" style="padding:80px 0;">
                                 <span class="hero-eyebrow">New Season Collection</span>
                                 <h1 class="hero-title">Your Crown,<br><em>Your Story</em></h1>
-                                <p class="hero-subtitle">Premium Afro hair care, wigs &amp; beauty products<br>crafted for melanin-rich beauty.</p>
-                                <a href="{% url 'gallery' %}" class="btn-hero-primary">Shop Now</a>
-                                <a href="{% url 'gallery' %}" class="btn-hero-outline">New Arrivals</a>
+                                <p class="hero-subtitle">Premium Afro hair care, wigs, skincare and beauty products crafted for melanin-rich beauty.</p>
+                                <a href="#products-section" class="btn-hero-primary">Shop Now</a>
+                            </div>
+                            <div class="col-md-6 text-center d-none d-md-block">
+                                <img src="{% static 'images/logo-full.png' %}" alt="Beauty In Black"
+                                     style="max-height:280px;filter:drop-shadow(0 20px 40px rgba(0,0,0,0.4));">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Slide 2 -->
             <div class="carousel-item">
-                <div class="hero-slide" style="background: linear-gradient(135deg, #1A0F0A 0%, #4A3728 50%, #7A8C6E 100%);">
+                <div class="hero-slide" style="background:linear-gradient(135deg,#3B2A1A 0%,#8B6040 50%,#C9A96E 100%);">
                     <div class="container">
-                        <div class="col-md-7 hero-content" style="padding: 80px 0;">
+                        <div class="col-md-7 hero-content" style="padding:80px 0;">
                             <span class="hero-eyebrow">Top Brands</span>
                             <h1 class="hero-title">Discover<br><em>Your Brands</em></h1>
                             <p class="hero-subtitle">Shea Moisture, Cantu, Mielle &amp; more — all in one place.</p>
-                            <a href="{% url 'gallery' %}" class="btn-hero-primary">View All Products</a>
+                            <a href="#brands" class="btn-hero-primary">View All Brands</a>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
-        <a class="carousel-control-prev" href="#heroCarousel" data-slide="prev" style="width:50px;opacity:0.6;"><span class="carousel-control-prev-icon"></span></a>
-        <a class="carousel-control-next" href="#heroCarousel" data-slide="next" style="width:50px;opacity:0.6;"><span class="carousel-control-next-icon"></span></a>
+
+        <a class="carousel-control-prev" href="#heroCarousel" role="button" data-slide="prev" style="width:50px;opacity:0.6;">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        </a>
+        <a class="carousel-control-next" href="#heroCarousel" role="button" data-slide="next" style="width:50px;opacity:0.6;">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        </a>
         <ol class="carousel-indicators" style="bottom:16px;">
             <li data-target="#heroCarousel" data-slide-to="0" class="active" style="background:var(--gold);"></li>
-            <li data-target="#heroCarousel" data-slide-to="1" style="background:rgba(201,169,110,0.5);"></li>
+            <li data-target="#heroCarousel" data-slide-to="1" style="background:rgba(201,169,110,0.4);"></li>
+            <li data-target="#heroCarousel" data-slide-to="2" style="background:rgba(201,169,110,0.4);"></li>
         </ol>
     </div>
 </section>
 
-<!-- ─── PROMO STRIP ───────────────────────────────────────── -->
-<div class="promo-strip">
-    <div class="container-fluid px-0">
-        <div class="promo-strip-inner">
-            <div class="promo-strip-item"><i class="fas fa-shipping-fast"></i> Free UK Delivery Over £40</div>
-            <div class="promo-strip-item"><i class="fas fa-undo"></i> Easy 30-Day Returns</div>
-            <div class="promo-strip-item"><i class="fas fa-lock"></i> Secure Stripe Payments</div>
-            <div class="promo-strip-item"><i class="fas fa-headset"></i> Expert Beauty Advice</div>
+<!-- ══ PROMO STRIP ════════════════════════════════════════════ -->
+<div style="background:var(--gold);margin:0 -15px;">
+    <div class="container">
+        <div style="display:flex;justify-content:space-around;align-items:stretch;flex-wrap:wrap;">
+            <div style="flex:1;text-align:center;padding:13px 16px;border-right:1px solid rgba(44,24,16,0.15);font-family:'Jost',sans-serif;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown-dark);display:flex;align-items:center;justify-content:center;gap:7px;min-width:150px;">
+                <i class="fas fa-shipping-fast"></i> Free UK Delivery Over £40
+            </div>
+            <div style="flex:1;text-align:center;padding:13px 16px;border-right:1px solid rgba(44,24,16,0.15);font-family:'Jost',sans-serif;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown-dark);display:flex;align-items:center;justify-content:center;gap:7px;min-width:150px;">
+                <i class="fas fa-undo"></i> 30-Day Returns
+            </div>
+            <div style="flex:1;text-align:center;padding:13px 16px;border-right:1px solid rgba(44,24,16,0.15);font-family:'Jost',sans-serif;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown-dark);display:flex;align-items:center;justify-content:center;gap:7px;min-width:150px;">
+                <i class="fas fa-lock"></i> Secure Stripe Payments
+            </div>
+            <div style="flex:1;text-align:center;padding:13px 16px;font-family:'Jost',sans-serif;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown-dark);display:flex;align-items:center;justify-content:center;gap:7px;min-width:150px;">
+                <i class="fas fa-headset"></i> Expert Beauty Advice
+            </div>
         </div>
     </div>
 </div>
 
-<!-- ─── NEW ARRIVALS ──────────────────────────────────────── -->
-<section class="section-products">
-    <div class="container">
-        <div class="section-header">
-            <span class="eyebrow">Just Landed</span>
-            <h2>New Arrivals</h2>
-            <span class="divider"></span>
-            <p>Discover the latest additions to our curated collection of premium beauty products.</p>
-        </div>
-        <div class="row">
-            {% for product in products|slice:":8" %}
-            <div class="col-6 col-md-3 mb-4">
-                <a href="{% url 'product_detail' product.slug %}" style="text-decoration:none;">
-                <div class="prd-card">
-                    <span class="badge-label badge-new">New</span>
+<!-- ══ PRODUCTS SECTION ═══════════════════════════════════════ -->
+<section id="products-section" class="section-products">
+    <div class="section-header">
+        <span class="eyebrow">Shop</span>
+        <h2>
+            {% if selected_gender == 'female' %}Female Products
+            {% elif selected_gender == 'male' %}Male Products
+            {% elif selected_category %}Filtered Products
+            {% elif q %}Results for "{{ q }}"
+            {% else %}All Products{% endif %}
+        </h2>
+        <span class="divider"></span>
+        <p>Click a product to view full details, add to bag, or save to your wishlist.</p>
+    </div>
+
+    <!-- Category filter tabs -->
+    <div class="tabs-nav-wrap">
+        <ul class="tabs-nav">
+            <li class="nav-item">
+                <a class="nav-link {% if not selected_category %}active{% endif %}"
+                   href="{% url 'homepage' %}#products-section">All</a>
+            </li>
+            {% for cat in categories %}
+            <li class="nav-item">
+                <a class="nav-link {% if selected_category == cat.id|stringformat:'s' %}active{% endif %}"
+                   href="{% url 'homepage' %}?category={{ cat.id }}#products-section">
+                    {{ cat.name }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Product grid -->
+    <div class="row">
+        {% for product in products %}
+        {% with in_cart=product.id|stringformat:"s" in_wishlist=product.id|stringformat:"s" %}
+        <div class="col-6 col-md-3 mb-4">
+            <div class="prd-card">
+
+                <!-- Product image — click to open detail panel -->
+                <a href="#" class="prd-card-link"
+                   onclick="openProductDetail(
+                       {{ product.id }},
+                       '{{ product.name|escapejs }}',
+                       '{{ product.price }}',
+                       '{% if product.image %}{{ product.image.url }}{% endif %}',
+                       '{{ product.description|default:''|escapejs|truncatechars:300 }}',
+                       '{{ product.category.name|escapejs }}',
+                       {% if product.id in cart_product_ids %}true{% else %}false{% endif %},
+                       {% if product.id in wishlist_product_ids %}true{% else %}false{% endif %}
+                   );return false;">
                     <div class="prd-img-wrap">
                         {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
                         {% else %}
-                        <div class="prd-placeholder">{{ product.name|truncatechars:30 }}</div>
+                            <div class="prd-placeholder">{{ product.name|truncatechars:30 }}</div>
                         {% endif %}
                     </div>
-                    <div class="prd-body">
-                        <p class="prd-category">{{ product.category.name }}</p>
-                        <h3 class="prd-name">{{ product.name|truncatechars:45 }}</h3>
-                        <div class="prd-price">£{{ product.price }}</div>
-                        <div class="prd-actions">
-                            <button class="btn-add-cart w-100" onclick="event.preventDefault(); addToCart({{ product.id }})">Add to Bag</button>
-                            <button class="btn-wishlist" title="Wishlist" onclick="event.preventDefault(); addToWishlist({{ product.id }})"><i class="far fa-heart"></i></button>
-                        </div>
-                    </div>
-                </div>
                 </a>
-            </div>
-            {% endfor %}
-        </div>
-        <div class="text-center mt-2">
-            <a href="{% url 'gallery' %}" class="btn-view-all">View All Products</a>
-        </div>
-    </div>
-</section>
 
-<!-- ─── TOP SELLERS ───────────────────────────────────────── -->
-<section class="section-products bg-cream">
-    <div class="container">
-        <div class="section-header">
-            <span class="eyebrow">Best of Black Is Beauty</span>
-            <h2>Top Sellers</h2>
-            <span class="divider"></span>
-            <p>Our most-loved products, trusted by thousands of happy customers.</p>
-        </div>
-        <div class="row">
-            {% for product in products|slice:":4" %}
-            <div class="col-6 col-md-3 mb-4">
-                <a href="{% url 'product_detail' product.slug %}" style="text-decoration:none;">
-                <div class="prd-card">
-                    <span class="badge-label badge-hot">Best Seller</span>
-                    <div class="prd-img-wrap">
-                        {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
-                        {% else %}
-                        <div class="prd-placeholder">{{ product.name|truncatechars:30 }}</div>
+                <div class="prd-body">
+                    <p class="prd-category">{{ product.category.name }}</p>
+
+                    <a href="#" class="prd-card-link"
+                       onclick="openProductDetail(
+                           {{ product.id }},
+                           '{{ product.name|escapejs }}',
+                           '{{ product.price }}',
+                           '{% if product.image %}{{ product.image.url }}{% endif %}',
+                           '{{ product.description|default:''|escapejs|truncatechars:300 }}',
+                           '{{ product.category.name|escapejs }}',
+                           {% if product.id in cart_product_ids %}true{% else %}false{% endif %},
+                           {% if product.id in wishlist_product_ids %}true{% else %}false{% endif %}
+                       );return false;">
+                        <h3 class="prd-name">{{ product.name|truncatechars:45 }}</h3>
+                    </a>
+
+                    <div class="prd-price">
+                        £{{ product.price }}
+                        {% if product.compare_price %}
+                        <span style="text-decoration:line-through;color:var(--text-muted);font-size:0.8rem;font-weight:300;margin-left:6px;">
+                            £{{ product.compare_price }}
+                        </span>
                         {% endif %}
                     </div>
-                    <div class="prd-body">
-                        <p class="prd-category">{{ product.category.name }}</p>
-                        <h3 class="prd-name">{{ product.name|truncatechars:45 }}</h3>
-                        <div class="prd-price">£{{ product.price }}</div>
-                        <div class="prd-actions">
-                            <button class="btn-add-cart w-100" onclick="event.preventDefault(); addToCart({{ product.id }})">Add to Bag</button>
-                            <button class="btn-wishlist" title="Wishlist" onclick="event.preventDefault(); addToWishlist({{ product.id }})"><i class="far fa-heart"></i></button>
-                        </div>
+
+                    <!-- Star rating display -->
+                    <div style="margin-bottom:10px;">
+                        <i class="fas fa-star" style="color:#C9A96E;font-size:0.75rem;"></i>
+                        <i class="fas fa-star" style="color:#C9A96E;font-size:0.75rem;"></i>
+                        <i class="fas fa-star" style="color:#C9A96E;font-size:0.75rem;"></i>
+                        <i class="fas fa-star" style="color:#C9A96E;font-size:0.75rem;"></i>
+                        <i class="far fa-star" style="color:#C9A96E;font-size:0.75rem;"></i>
+                        <span style="font-size:0.68rem;color:var(--text-muted);margin-left:3px;">(4.0)</span>
+                    </div>
+
+                    <p class="prd-desc-preview">
+                        {{ product.description|default:"Click to view product details."|truncatechars:80 }}
+                    </p>
+
+                    <!-- Add / Remove button (toggles state) -->
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        {% if product.id in cart_product_ids %}
+                        <button class="btn-remove-state"
+                                onclick="removeFromCartBtn({{ product.id }}, this)">
+                            Remove
+                        </button>
+                        {% else %}
+                        <button class="btn-add-state"
+                                onclick="addToCart({{ product.id }}, this)">
+                            Add to Bag
+                        </button>
+                        {% endif %}
+
+                        <!-- Wishlist heart button -->
+                        <button class="wishlist-btn {% if product.id in wishlist_product_ids %}wishlist-active{% endif %}"
+                                onclick="toggleWishlist({{ product.id }}, this)"
+                                title="Save to Wishlist">
+                            <i class="{% if product.id in wishlist_product_ids %}fas{% else %}far{% endif %} fa-heart"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <p style="color:var(--text-muted);font-family:'Cormorant Garamond',serif;font-size:1.2rem;">
+                No products found. <a href="{% url 'homepage' %}">Clear filters</a>
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- ══ BRANDS ════════════════════════════════════════════════ -->
+<section id="brands" class="section-brands">
+    <div class="section-header">
+        <span class="eyebrow">Our Stockists</span>
+        <h2>View All Brands</h2>
+        <span class="divider"></span>
+    </div>
+    <div class="text-center">
+        <span class="brand-pill">Shea Moisture</span>
+        <span class="brand-pill">Cantu</span>
+        <span class="brand-pill">Mielle Organics</span>
+        <span class="brand-pill">ORS</span>
+        <span class="brand-pill">Kinky Curly</span>
+        <span class="brand-pill">Carol's Daughter</span>
+        <span class="brand-pill">As I Am</span>
+        <span class="brand-pill">Palmer's</span>
+        <span class="brand-pill">Aunt Jackie's</span>
+        <span class="brand-pill">Africa's Best</span>
+        <span class="brand-pill">Dark &amp; Lovely</span>
+        <span class="brand-pill">Creme of Nature</span>
+    </div>
+</section>
+
+<!-- ══ NEWSLETTER ════════════════════════════════════════════ -->
+<section id="newsletter" class="section-newsletter"
+         style="background:var(--bg-soft);margin:0 -15px;padding:60px 15px;">
+    <div class="section-header">
+        <span class="eyebrow">Stay Connected</span>
+        <h2>Subscribe &amp; Save</h2>
+        <span class="divider"></span>
+        <p>Join our community and be first to hear about new arrivals, exclusive deals, and beauty tips tailored for you.</p>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <form class="js-newsletter-form">
+                <div class="input-group">
+                    <input type="email" class="form-control" placeholder="Enter your email address…">
+                    <div class="input-group-append">
+                        <button class="btn-search" type="submit">Subscribe</button>
                     </div>
                 </div>
-                </a>
-            </div>
-            {% endfor %}
-        </div>
-        <div class="text-center mt-2">
-            <a href="{% url 'gallery' %}" class="btn-view-all">View All Top Sellers</a>
+            </form>
         </div>
     </div>
 </section>
-
-<!-- ─── CUSTOMER REVIEWS ──────────────────────────────────── -->
-<section class="section-reviews">
-    <div class="container">
-        <div class="section-header">
-            <span class="eyebrow" style="color:var(--gold);">What Customers Say</span>
-            <h2 style="color:#fff;">Customer Reviews</h2>
-            <span class="divider"></span>
-        </div>
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="review-card">
-                    <div class="review-stars">★★★★★</div>
-                    <p class="review-text">"Absolutely amazing quality! The delivery was super fast and everything was packaged beautifully. My hair has never looked better!"</p>
-                    <p class="review-author">Amara T.</p><p class="review-verified">✓ Verified Purchase · London</p>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="review-card">
-                    <div class="review-stars">★★★★★</div>
-                    <p class="review-text">"Black Is Beauty has the most comprehensive range of Afro hair products I've found in the UK. Outstanding customer service too!"</p>
-                    <p class="review-author">Kezia M.</p><p class="review-verified">✓ Verified Purchase · Manchester</p>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="review-card">
-                    <div class="review-stars">★★★★★</div>
-                    <p class="review-text">"I love that this shop truly celebrates Black beauty. The products are authentic and the prices are great. Will be a loyal customer forever."</p>
-                    <p class="review-author">Destiny O.</p><p class="review-verified">✓ Verified Purchase · Birmingham</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ─── BLACK IS BEAUTY SOCIAL SECTION ───────────────────── -->
-<section class="bib-social-section">
-    <div class="container text-center">
-        <div class="section-header">
-            <span class="eyebrow">Stay Connected</span>
-            <h2>Black Is Beauty</h2>
-            <span class="divider"></span>
-            <p style="font-size:1rem;color:var(--brown-mid);font-family:'Cormorant Garamond',serif;font-style:italic;">Celebrating the beauty of melanin-rich hair and skin.</p>
-        </div>
-        <div class="d-flex justify-content-center flex-wrap" style="gap:16px;margin-top:24px;">
-            <a href="https://www.facebook.com/BlackIsBeautyUK/" target="_blank" rel="noopener"
-               style="display:inline-flex;align-items:center;gap:10px;padding:13px 28px;border:1px solid var(--border);font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown-mid);transition:all 0.2s;background:#fff;"
-               onmouseover="this.style.background='#1877F2';this.style.color='#fff';this.style.borderColor='#1877F2'"
-               onmouseout="this.style.background='#fff';this.style.color='var(--brown-mid)';this.style.borderColor='var(--border)'">
-                <i class="fab fa-facebook-f" style="font-size:1.1rem;"></i> Facebook
-            </a>
-            <a href="https://www.instagram.com/blackisbeautyuk/" target="_blank" rel="noopener"
-               style="display:inline-flex;align-items:center;gap:10px;padding:13px 28px;border:1px solid var(--border);font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown-mid);transition:all 0.2s;background:#fff;"
-               onmouseover="this.style.background='#E4405F';this.style.color='#fff';this.style.borderColor='#E4405F'"
-               onmouseout="this.style.background='#fff';this.style.color='var(--brown-mid)';this.style.borderColor='var(--border)'">
-                <i class="fab fa-instagram" style="font-size:1.1rem;"></i> Instagram
-            </a>
-            <a href="https://www.youtube.com/@blackisbeautyuk" target="_blank" rel="noopener"
-               style="display:inline-flex;align-items:center;gap:10px;padding:13px 28px;border:1px solid var(--border);font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown-mid);transition:all 0.2s;background:#fff;"
-               onmouseover="this.style.background='#FF0000';this.style.color='#fff';this.style.borderColor='#FF0000'"
-               onmouseout="this.style.background='#fff';this.style.color='var(--brown-mid)';this.style.borderColor='var(--border)'">
-                <i class="fab fa-youtube" style="font-size:1.1rem;"></i> YouTube
-            </a>
-            <a href="#" target="_blank"
-               style="display:inline-flex;align-items:center;gap:10px;padding:13px 28px;border:1px solid var(--border);font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown-mid);transition:all 0.2s;background:#fff;"
-               onmouseover="this.style.background='#000';this.style.color='#fff';this.style.borderColor='#000'"
-               onmouseout="this.style.background='#fff';this.style.color='var(--brown-mid)';this.style.borderColor='var(--border)'">
-                <i class="fab fa-tiktok" style="font-size:1.1rem;"></i> TikTok
-            </a>
-        </div>
-        <p style="margin-top:24px;font-size:0.78rem;color:var(--text-light);font-family:'Jost',sans-serif;">Tag us <strong style="color:var(--gold);">@BlackIsBeautyUK</strong> for a chance to be featured on our page.</p>
-    </div>
-</section>
-
-<!-- Toast -->
-<div id="cartToast" style="position:fixed;bottom:28px;right:28px;background:var(--brown-dark);color:var(--gold-light);font-family:'Jost',sans-serif;font-size:0.78rem;padding:14px 22px;z-index:9999;transform:translateY(80px);opacity:0;transition:all 0.3s;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.2);" id="cartToast">
-    <i class="fas fa-check-circle" style="color:var(--gold);"></i>
-    <span id="cartToastMsg">Added to bag!</span>
-</div>
 
 {% endblock %}
 
 {% block scripts %}
 <script>
-function getCookie(name) {
-    const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return m ? decodeURIComponent(m[2]) : '';
-}
-function addToCart(productId) {
-    fetch('/ajax-add-to-cart/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ product_id: productId, quantity: 1 })
-    })
-    .then(r => r.json())
-    .then(data => showToast(data.message || 'Added to bag!'))
-    .catch(() => showToast('Added to bag!'));
-}
-function addToWishlist(productId) {
-    fetch('/ajax-add-to-wishlist/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ product_id: productId })
-    })
-    .then(r => r.json())
-    .then(data => showToast(data.message || 'Added to wishlist!'))
-    .catch(() => showToast('Added to wishlist!'));
-}
-function showToast(msg) {
-    const toast = document.getElementById('cartToast');
-    document.getElementById('cartToastMsg').textContent = msg;
-    toast.style.transform = 'translateY(0)';
-    toast.style.opacity = '1';
-    setTimeout(() => { toast.style.transform = 'translateY(80px)'; toast.style.opacity = '0'; }, 2800);
-}
-document.querySelectorAll('.btn-wishlist').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const icon = this.querySelector('i');
-        icon.classList.toggle('far'); icon.classList.toggle('fas');
-        icon.style.color = icon.classList.contains('fas') ? 'var(--rose)' : '';
-    });
+/* Init cart badge on page load */
+document.addEventListener('DOMContentLoaded', function () {
+    fetch('/ajax-cart-data/')
+        .then(function(r){ return r.json(); })
+        .then(function(data){ updateCartBadge(data.count); });
 });
 </script>
 {% endblock %}
