@@ -105,9 +105,23 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 # ------------------------------------------------------------------------------
 # DATABASE SECTION
 # ------------------------------------------------------------------------------
+# Force a crash with a USEFUL error if variables are missing
 DB_NAME = os.getenv('DB_NAME')
 
-if DB_NAME:
+if not DB_NAME:
+    # If we are on Vercel, this will show up in your "Logs" tab
+    if os.getenv('VERCEL'):
+        raise ConnectionError("CRITICAL: DB_NAME environment variable is missing in Vercel Dashboard.")
+    
+    # Only use SQLite if we are truly running on your local computer
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    # MySQL configuration
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -116,19 +130,7 @@ if DB_NAME:
             'PASSWORD': os.getenv('DB_PASSWORD'),
             'HOST': os.getenv('DB_HOST'),
             'PORT': os.getenv('DB_PORT', '3306'),
-            'OPTIONS': {
-                'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'} 
-            }
-        }
-    }
-else:
-    if os.getenv('VERCEL'):
-        raise ValueError("Database configuration failed: DB_NAME environment variable is missing on Vercel.")
-    
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'OPTIONS': {'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'}}
         }
     }  
 # ------------------------------------------------------------------------------
