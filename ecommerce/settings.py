@@ -4,6 +4,8 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import pymysql
+pymysql.install_as_MySQLdb()
 
 load_dotenv()
 
@@ -31,6 +33,8 @@ CSRF_TRUSTED_ORIGINS = [
     'https://beautyinblack.co.uk',
     'https://www.beautyinblack.co.uk',
 ]
+
+DEBUG = True
 
 # ------------------------------------------------------------------------------
 # PRODUCTION SECURITY HEADERS (only active when DEBUG=False)
@@ -105,20 +109,20 @@ if os.getenv('DB_NAME'):
         'default': {
             'ENGINE':   'django.db.backends.mysql',
             'NAME':     os.getenv('DB_NAME'),
-            'USER':     os.getenv('DB_USER', 'postgres'),
+            'USER':     os.getenv('DB_USER', 'root'),
             'PASSWORD': os.getenv('DB_PASSWORD', ''),
             'HOST':     os.getenv('DB_HOST', 'localhost'),
             'PORT':     os.getenv('DB_PORT', '3306'),
             'OPTIONS': {
-                'sslmode': os.getenv('DB_SSLMODE', 'require'),  # Use 'require' for production DB
+                'ssl_mode': os.getenv('DB_SSLMODE', 'REQUIRED'),
             },
-            'CONN_MAX_AGE': 60,   # Reuse DB connections for performance
+            'CONN_MAX_AGE': 60,
         }
     }
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
+            'ENGINE': 'django.db.backends.sqlite3',
             'NAME':   BASE_DIR / 'db.sqlite3',
         }
     }

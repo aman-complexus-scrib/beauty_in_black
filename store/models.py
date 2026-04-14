@@ -42,13 +42,22 @@ class Product(models.Model):
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='products/')
-
+    
 class Review(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
-    author = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    rating = models.IntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    comment = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    customer        = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    product         = models.ForeignKey(Product, on_delete=models.CASCADE)
+    overall_rating  = models.CharField(max_length=20)
+    quality_rating  = models.CharField(max_length=20, blank=True)
+    value_rating    = models.CharField(max_length=20, blank=True)
+    delivery_rating = models.CharField(max_length=20, blank=True)
+    title           = models.CharField(max_length=200, blank=True)
+    body            = models.TextField(blank=True)
+    recommend       = models.CharField(max_length=300, blank=True)
+    approved        = models.BooleanField(default=False)
+    created_at      = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.customer} - {self.product}"
 
 class Cart(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)

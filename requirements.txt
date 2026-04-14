@@ -1,6 +1,6 @@
-django
+django>=4.2,<5.1
 python-dotenv
-mysqlclient
+PyMySQL
 stripe
 Pillow
 whitenoise

@@ -1,16 +1,16 @@
 """
-WSGI config for mysite project.
+WSGI config for beauty_in_black project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
 """
 
 import os
-
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
+# IMPORTANT: Ensure 'beauty_in_black.settings' matches your folder name
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'beauty_in_black.settings')
 
 application = get_wsgi_application()
+
+# This alias is required for Vercel to find the gateway
+app = application

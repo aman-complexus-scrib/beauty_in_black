@@ -33,7 +33,10 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ('product', 'author', 'rating', 'created_at')
+    list_display = ('product', 'customer', 'overall_rating', 'approved', 'created_at')
+    list_filter = ('approved', 'overall_rating')
+    search_fields = ('customer__email', 'product__name', 'title')
+    list_editable = ('approved',)
 
 admin.site.register(Cart)
 admin.site.register(Order)
