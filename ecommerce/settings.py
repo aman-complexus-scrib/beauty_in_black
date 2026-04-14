@@ -22,9 +22,11 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    'beautyinblack.wasmer.app',        # Your Wasmer subdomain
-    'beautyinblack.co.uk',             # Your custom domain
-    'www.beautyinblack.co.uk',         # www variant
+    '.vercel.app',        # This allows ALL Vercel deployment URLs
+    '.now.sh',            # Common Vercel alias
+    'beautyinblack.co.uk', 
+    'www.beautyinblack.co.uk',
+    'beautyinblack.wasmer.app',
 ]
 
 # Required for Stripe webhooks and form submissions over HTTPS

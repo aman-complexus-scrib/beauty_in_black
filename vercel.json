@@ -2,18 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "beauty_in_black/wsgi.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb",
-        "runtime": "python3.12"
-      }
+      "src": "ecommerce/wsgi.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "beauty_in_black/wsgi.py"
+      "dest": "ecommerce/wsgi.py"
     }
   ]
 }
