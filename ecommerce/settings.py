@@ -1,5 +1,5 @@
-# ecommerce/settings.py  ─  Black Is Beauty
-# pip install django python-dotenv psycopg2-binary stripe Pillow whitenoise
+# Required packages:
+#   pip install django python-dotenv psycopg2-binary stripe Pillow whitenoise gunicorn
 
 import os
 from pathlib import Path
@@ -9,11 +9,46 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-change-me-in-production')
-DEBUG = True   # Set to False for production
+# ------------------------------------------------------------------------------
+# SECURITY
+# ------------------------------------------------------------------------------
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'blackisbeauty.co.uk', 'www.blackisbeauty.co.uk']
+# Reads DEBUG from environment — set DEBUG=False in Wasmer env vars for production
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'beautyinblack.wasmer.app',        # Your Wasmer subdomain
+    'beautyinblack.co.uk',             # Your custom domain
+    'www.beautyinblack.co.uk',         # www variant
+]
+
+# Required for Stripe webhooks and form submissions over HTTPS
+CSRF_TRUSTED_ORIGINS = [
+    'https://beautyinblack.wasmer.app',
+    'https://beautyinblack.co.uk',
+    'https://www.beautyinblack.co.uk',
+]
+
+# ------------------------------------------------------------------------------
+# PRODUCTION SECURITY HEADERS (only active when DEBUG=False)
+# ------------------------------------------------------------------------------
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000          # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True              # Force HTTPS
+    SESSION_COOKIE_SECURE = True            # Cookies only over HTTPS
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+
+# ------------------------------------------------------------------------------
+# APPLICATIONS
+# ------------------------------------------------------------------------------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -24,9 +59,12 @@ INSTALLED_APPS = [
     'store',
 ]
 
+# ------------------------------------------------------------------------------
+# MIDDLEWARE
+# ------------------------------------------------------------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',   # Must be 2nd, right after SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -37,6 +75,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'ecommerce.urls'
 
+# ------------------------------------------------------------------------------
+# TEMPLATES
+# ------------------------------------------------------------------------------
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -55,26 +96,36 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ecommerce.wsgi.application'
 
-# Database: uses SQLite locally if no DB_NAME env var is set
+# ------------------------------------------------------------------------------
+# DATABASE
+# Uses PostgreSQL when DB_NAME env var is set, otherwise falls back to SQLite
+# ------------------------------------------------------------------------------
 if os.getenv('DB_NAME'):
     DATABASES = {
         'default': {
-            'ENGINE':   'django.db.backends.postgresql',
+            'ENGINE':   'django.db.backends.mysql',
             'NAME':     os.getenv('DB_NAME'),
             'USER':     os.getenv('DB_USER', 'postgres'),
             'PASSWORD': os.getenv('DB_PASSWORD', ''),
             'HOST':     os.getenv('DB_HOST', 'localhost'),
-            'PORT':     os.getenv('DB_PORT', '5432'),
+            'PORT':     os.getenv('DB_PORT', '3306'),
+            'OPTIONS': {
+                'sslmode': os.getenv('DB_SSLMODE', 'require'),  # Use 'require' for production DB
+            },
+            'CONN_MAX_AGE': 60,   # Reuse DB connections for performance
         }
     }
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
+            'ENGINE': 'django.db.backends.mysql',
             'NAME':   BASE_DIR / 'db.sqlite3',
         }
     }
 
+# ------------------------------------------------------------------------------
+# AUTHENTICATION
+# ------------------------------------------------------------------------------
 AUTH_USER_MODEL = 'store.Customer'
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -86,35 +137,88 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 
+# ------------------------------------------------------------------------------
+# INTERNATIONALISATION
+# ------------------------------------------------------------------------------
 LANGUAGE_CODE = 'en-gb'
-TIME_ZONE = 'Europe/London'
-USE_I18N = True
-USE_TZ = True
+TIME_ZONE     = 'Europe/London'
+USE_I18N      = True
+USE_TZ        = True
 
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+# ------------------------------------------------------------------------------
+# STATIC & MEDIA FILES
+# WhiteNoise serves static files efficiently in production without a CDN
+# ------------------------------------------------------------------------------
+STATIC_URL  = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'          # collectstatic writes here
+STATICFILES_DIRS = [BASE_DIR / 'static']        # Your source static files
+
+# CompressedManifestStaticFilesStorage adds cache-busting hashes to filenames
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MEDIA_URL = '/media/'
+MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# ------------------------------------------------------------------------------
+# DEFAULT PK FIELD
+# ------------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Stripe
-STRIPE_SECRET_KEY  = os.getenv('STRIPE_SECRET_KEY')
-STRIPE_PUBLIC_KEY  = os.getenv('STRIPE_PUBLIC_KEY')
+# ------------------------------------------------------------------------------
+# STRIPE PAYMENTS
+# ------------------------------------------------------------------------------
+STRIPE_SECRET_KEY     = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY     = os.getenv('STRIPE_PUBLIC_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
-# Email
+# ------------------------------------------------------------------------------
+# EMAIL (Gmail SMTP)
+# In production, use an App Password from your Google Account security settings
+# ------------------------------------------------------------------------------
 EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST          = 'smtp.gmail.com'
 EMAIL_PORT          = 587
 EMAIL_USE_TLS       = True
 EMAIL_HOST_USER     = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL  = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER', 'noreply@beautyinblack.co.uk')
 
-SESSION_COOKIE_AGE       = 1209600   # 2 weeks
+# ------------------------------------------------------------------------------
+# SESSION
+# ------------------------------------------------------------------------------
+SESSION_COOKIE_AGE        = 1209600   # 2 weeks in seconds
 SESSION_SAVE_EVERY_REQUEST = False
+SESSION_ENGINE            = 'django.contrib.sessions.backends.db'  # Store in DB
+
+# ------------------------------------------------------------------------------
+# LOGGING (helps debug Wasmer deployment issues)
+# ------------------------------------------------------------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+    },
+}
