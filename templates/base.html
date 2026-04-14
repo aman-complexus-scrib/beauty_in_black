@@ -150,15 +150,9 @@
             <strong>Total:</strong>
             <strong id="cart-total-display">£0.00</strong>
         </div>
-        {% if user.is_authenticated %}
         <button class="btn-panel-primary w-100" onclick="openCheckout()">
             Proceed to Checkout
         </button>
-        {% else %}
-        <a href="{% url 'login' %}" class="btn-panel-primary w-100 text-center d-block">
-            Login to Checkout
-        </a>
-        {% endif %}
     </div>
 </div>
 
@@ -169,13 +163,16 @@
         <button class="panel-close" onclick="closeAllPanels()"><i class="fas fa-times"></i></button>
     </div>
     <div id="wishlist-panel-body" class="panel-body">
-        {% if user.is_authenticated %}
         <p class="text-muted text-center py-4">Your wishlist is empty.</p>
-        {% else %}
-        <p class="text-muted text-center py-4">
-            <a href="{% url 'login' %}">Login</a> to save items to your wishlist.
-        </p>
-        {% endif %}
+    </div>
+     <div class="panel-footer">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <strong>Total:</strong>
+            <strong id="cart-total-display">£0.00</strong>
+        </div>
+        <button class="btn-panel-primary w-100" onclick="openCheckout()">
+            Proceed to Checkout
+        </button>
     </div>
 </div>
 
@@ -334,7 +331,7 @@
     <div style="border-top:1px solid rgba(201,169,110,0.18);padding:16px 0;font-family:'Jost',sans-serif;font-size:0.72rem;letter-spacing:0.05em;color:rgba(232,213,176,0.45);">
         <div class="container">
             <div class="d-flex flex-wrap justify-content-between align-items-center" style="gap:8px;">
-                <span>&copy; 2026 Beautyin Black. All rights reserved. | Ealing, London, UK</span>
+                <span>&copy; 2026 Beauty in Black. All rights reserved. | Ealing, London, UK</span>
                 <div>
                     <a href="{% url 'terms' %}" style="color:rgba(232,213,176,0.45);margin-left:18px;">Terms &amp; Conditions</a>
                     <a href="{% url 'cookie_policy' %}" style="color:rgba(232,213,176,0.45);margin-left:18px;">Cookie Policy</a>

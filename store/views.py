@@ -457,8 +457,8 @@ class PaymentSuccess(View):
                     'emails/order_confirmation.html', {'user': request.user}
                 )
                 msg = EmailMultiAlternatives(
-                    subject='Your Order Confirmation – Black Is Beauty',
-                    body='Thank you for your order at Black Is Beauty!',
+                    subject='Your Order Confirmation – Beauty in Black',
+                    body='Thank you for your order at Beauty in Black!',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[request.user.email],
                 )
