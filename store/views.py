@@ -72,11 +72,12 @@ class Index(View):
         brands       = Brand.objects.all()
         all_products = Product.objects.select_related('category', 'brand').all()
 
-        q           = request.GET.get('q', '').strip()
-        category_id = request.GET.get('category', '')
-        gender      = request.GET.get('gender', '')
-        max_price   = request.GET.get('max_price', '').strip()
-        brand_filter = request.GET.get('brand', '').strip()
+        q             = request.GET.get('q', '').strip()
+        category_id   = request.GET.get('category', '')
+        gender        = request.GET.get('gender', '')
+        max_price     = request.GET.get('max_price', '').strip()
+        brand_filter  = request.GET.get('brand', '').strip()
+        category_name = request.GET.get('category_name', '').strip()
 
         if q:
             all_products = all_products.filter(name__icontains=q)
@@ -91,6 +92,8 @@ class Index(View):
                 pass
         if brand_filter:
             all_products = all_products.filter(brand__name__icontains=brand_filter)
+        if category_name:
+            all_products = all_products.filter(category__name__icontains=category_name)
 
         cart_product_ids = []
         cart_items       = []
@@ -131,6 +134,7 @@ class Index(View):
             'q':                   q,
             'max_price':           max_price,
             'brand_filter':        brand_filter,
+            'category_name':       category_name,
             'cart_product_ids':    cart_product_ids,
             'cart_items':          cart_items,
             'cart_total':          cart_total,

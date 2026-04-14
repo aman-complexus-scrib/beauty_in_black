@@ -99,13 +99,27 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'homepage' %}#products-section">Shop</a>
                 </li>
-                {% for cat in categories %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'homepage' %}?category={{ cat.id }}#products-section">
-                        {{ cat.name }}
-                    </a>
+                    <a class="nav-link" href="{% url 'homepage' %}?category_name=accessories#products-section">Accessories</a>
                 </li>
-                {% endfor %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'homepage' %}?category_name=haircare#products-section">Haircare</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'homepage' %}?category_name=kids#products-section">Kids</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'homepage' %}?category_name=makeup#products-section">Makeup</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'homepage' %}?category_name=mens#products-section">Mens</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'homepage' %}?category_name=skincare#products-section">Skincare</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'homepage' %}?category_name=wigs#products-section">Wigs</a>
+                </li>
             </ul>
         </div>
     </div>
@@ -165,7 +179,7 @@
     <div id="wishlist-panel-body" class="panel-body">
         <p class="text-muted text-center py-4">Your wishlist is empty.</p>
     </div>
-     <div class="panel-footer">
+    <div class="panel-footer">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <strong>Total:</strong>
             <strong id="cart-total-display">£0.00</strong>
@@ -474,7 +488,6 @@ function addToCart(productId, btn) {
             if (data.success) {
                 updateCartBadge(data.cart_count);
                 showToast('Added to bag!');
-                // Toggle button to "Remove" state
                 if (btn) {
                     btn.textContent = 'Remove';
                     btn.classList.remove('btn-add-state');
@@ -491,7 +504,6 @@ function removeFromCartBtn(productId, btn) {
             if (data.success) {
                 updateCartBadge(data.cart_count);
                 showToast('Removed from bag.');
-                // Toggle button back to "Add" state
                 if (btn) {
                     btn.textContent = 'Add to Bag';
                     btn.classList.remove('btn-remove-state');
@@ -606,7 +618,6 @@ function openProductDetail(productId, name, price, imageUrl, description, catego
 /* ─── CHECKOUT ─────────────────────────────────────────────── */
 function openCheckout() {
     closeAllPanels();
-    // Populate summary from cart data
     fetch('/ajax-cart-data/')
         .then(function(r){ return r.json(); })
         .then(function(data){
