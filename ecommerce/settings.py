@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 import pymysql
 pymysql.install_as_MySQLdb()
 
+pymysql.install_as_MySQLdb()
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -14,9 +16,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ------------------------------------------------------------------------------
 # SECURITY
 # ------------------------------------------------------------------------------
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key-for-build-purposes')
 
-# Reads DEBUG from environment — set DEBUG=False in Wasmer env vars for production
+# Default to False for safety, but you can toggle it in Vercel settings
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
@@ -35,8 +37,6 @@ CSRF_TRUSTED_ORIGINS = [
     'https://beautyinblack.co.uk',
     'https://www.beautyinblack.co.uk',
 ]
-
-DEBUG = True
 
 # ------------------------------------------------------------------------------
 # PRODUCTION SECURITY HEADERS (only active when DEBUG=False)
@@ -103,32 +103,35 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ecommerce.wsgi.application'
 
 # ------------------------------------------------------------------------------
-# DATABASE
-# Uses PostgreSQL when DB_NAME env var is set, otherwise falls back to SQLite
+# DATABASE SECTION 
 # ------------------------------------------------------------------------------
-if os.getenv('DB_NAME'):
+
+# Check if we are on Vercel/Production by looking for a DB_NAME environment variable
+DB_NAME = os.getenv('DB_NAME')
+
+if DB_NAME:
     DATABASES = {
         'default': {
-            'ENGINE':   'django.db.backends.mysql',
-            'NAME':     os.getenv('DB_NAME'),
-            'USER':     os.getenv('DB_USER', 'root'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST':     os.getenv('DB_HOST', 'localhost'),
-            'PORT':     os.getenv('DB_PORT', '3306'),
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': DB_NAME,
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST'),
+            'PORT': os.getenv('DB_PORT', '3306'),
             'OPTIONS': {
-                'ssl_mode': os.getenv('DB_SSLMODE', 'REQUIRED'),
-            },
-            'CONN_MAX_AGE': 60,
+                'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'} 
+            }
         }
     }
 else:
+    # Local development fallback
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME':   BASE_DIR / 'db.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-
+    
 # ------------------------------------------------------------------------------
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
@@ -163,7 +166,7 @@ STATICFILES_DIRS = [BASE_DIR / 'static']        # Your source static files
 
 # CompressedManifestStaticFilesStorage adds cache-busting hashes to filenames
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
+WHITENOISE_KEEP_FILES_ON_REMOTE = True
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
