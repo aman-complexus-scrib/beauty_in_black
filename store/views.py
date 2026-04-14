@@ -69,11 +69,14 @@ def _cart_count(user):
 class Index(View):
     def get(self, request):
         categories   = Category.objects.all()
+        brands       = Brand.objects.all()
         all_products = Product.objects.select_related('category', 'brand').all()
 
         q           = request.GET.get('q', '').strip()
         category_id = request.GET.get('category', '')
         gender      = request.GET.get('gender', '')
+        max_price   = request.GET.get('max_price', '').strip()
+        brand_filter = request.GET.get('brand', '').strip()
 
         if q:
             all_products = all_products.filter(name__icontains=q)
@@ -81,6 +84,13 @@ class Index(View):
             all_products = all_products.filter(category_id=category_id)
         if gender:
             all_products = all_products.filter(gender=gender)
+        if max_price:
+            try:
+                all_products = all_products.filter(price__lte=float(max_price))
+            except ValueError:
+                pass
+        if brand_filter:
+            all_products = all_products.filter(brand__name__icontains=brand_filter)
 
         cart_product_ids = []
         cart_items       = []
@@ -109,18 +119,25 @@ class Index(View):
         if product_id_param:
             selected_product = Product.objects.filter(id=product_id_param).first()
 
+        # Fetch approved homepage reviews to display at the bottom of the page
+        homepage_reviews = Review.objects.filter(approved=True).select_related('customer').order_by('-created_at')[:5]
+
         return render(request, 'index.html', {
             'products':            all_products,
             'categories':          categories,
+            'brands':              brands,
             'selected_category':   category_id,
             'selected_gender':     gender,
             'q':                   q,
+            'max_price':           max_price,
+            'brand_filter':        brand_filter,
             'cart_product_ids':    cart_product_ids,
             'cart_items':          cart_items,
             'cart_total':          cart_total,
             'wishlist_product_ids': wishlist_product_ids,
             'selected_product':    selected_product,
             'stripe_public_key':   settings.STRIPE_PUBLIC_KEY,
+            'homepage_reviews':    homepage_reviews,
         })
 
 
@@ -171,7 +188,8 @@ class Login(View):
         user     = authenticate(username=email, password=password)
         if user:
             login(request, user)
-            return redirect(request.GET.get('next', 'homepage'))
+            next_url = request.GET.get('next', '')
+            return redirect(next_url if next_url else 'homepage')
         return render(request, 'login.html', {'error': 'Invalid email or password.'})
 
 
@@ -331,6 +349,94 @@ def ajax_remove_from_wishlist(request):
     return JsonResponse({'success': True})
 
 
+def ajax_wishlist_data(request):
+    """GET  →  full wishlist item list as JSON (used to populate wishlist panel)"""
+    if request.user.is_authenticated:
+        wishlist_items = Wishlist.objects.filter(customer=request.user).select_related('product')
+        items = []
+        for entry in wishlist_items:
+            p = entry.product
+            items.append({
+                'product_id': p.id,
+                'name':       p.name,
+                'price':      str(p.price),
+                'image':      p.image.url if p.image else '',
+            })
+        return JsonResponse({'items': items, 'count': len(items)})
+    else:
+        wishlist = request.session.get('wishlist', [])
+        products = Product.objects.filter(id__in=wishlist)
+        items = []
+        for p in products:
+            items.append({
+                'product_id': p.id,
+                'name':       p.name,
+                'price':      str(p.price),
+                'image':      p.image.url if p.image else '',
+            })
+        return JsonResponse({'items': items, 'count': len(items)})
+
+
+def ajax_wishlist_to_cart(request):
+    """POST JSON { product_id } or { move_all: true }
+       Moves one or all wishlist items to the cart, then removes them from the wishlist.
+       Returns { success, cart_count }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    move_all   = data.get('move_all', False)
+    product_id = data.get('product_id')
+
+    if request.user.is_authenticated:
+        if move_all:
+            wishlist_items = Wishlist.objects.filter(customer=request.user).select_related('product')
+            for entry in wishlist_items:
+                item, created = Cart.objects.get_or_create(customer=request.user, product=entry.product)
+                if not created:
+                    item.quantity += 1
+                    item.save()
+                else:
+                    item.quantity = 1
+                    item.save()
+            wishlist_items.delete()
+        else:
+            if not product_id:
+                return JsonResponse({'success': False, 'error': 'Missing product_id'}, status=400)
+            product = get_object_or_404(Product, id=product_id)
+            item, created = Cart.objects.get_or_create(customer=request.user, product=product)
+            if not created:
+                item.quantity += 1
+                item.save()
+            else:
+                item.quantity = 1
+                item.save()
+            Wishlist.objects.filter(customer=request.user, product=product).delete()
+        cart_count = Cart.objects.filter(customer=request.user).count()
+    else:
+        wishlist = request.session.get('wishlist', [])
+        cart     = request.session.get('cart', {})
+        if move_all:
+            for pid in wishlist:
+                cart[pid] = cart.get(pid, 0) + 1
+            request.session['wishlist'] = []
+        else:
+            if not product_id:
+                return JsonResponse({'success': False, 'error': 'Missing product_id'}, status=400)
+            pid = str(product_id)
+            cart[pid] = cart.get(pid, 0) + 1
+            request.session['wishlist'] = [i for i in wishlist if i != pid]
+        request.session['cart'] = cart
+        cart_count = len(cart)
+
+    return JsonResponse({'success': True, 'cart_count': cart_count})
+
+
 # ── ORDERS AJAX ───────────────────────────────────────────────────────
 
 def ajax_orders(request):
@@ -481,6 +587,7 @@ class PaymentSuccess(View):
             'cart_total':           0,
             'wishlist_product_ids': [],
             'stripe_public_key':    settings.STRIPE_PUBLIC_KEY,
+            'homepage_reviews':     Review.objects.filter(approved=True).select_related('customer').order_by('-created_at')[:5],
         })
 
 
@@ -507,3 +614,49 @@ def stripe_webhook(request):
                 Order.objects.filter(customer_id=user_id, paid=False).update(paid=True)
 
     return HttpResponse(status=200)
+
+
+# ── REVIEW ────────────────────────────────────────────────────────────
+
+@login_required
+def review_page(request):
+    """GET  →  render review.html
+       POST →  save the review and redirect to homepage
+    """
+    if request.method == 'POST':
+        product_id      = request.POST.get('product_id', '').strip()
+        overall_rating  = request.POST.get('overall_rating', '')
+        quality_rating  = request.POST.get('quality_rating', '')
+        value_rating    = request.POST.get('value_rating', '')
+        delivery_rating = request.POST.get('delivery_rating', '')
+        title           = request.POST.get('title', '').strip()
+        body            = request.POST.get('body', '').strip()
+        recommend       = request.POST.get('recommend', '').strip()
+
+        if not product_id or not overall_rating or not body:
+            product = Product.objects.filter(id=product_id).first() if product_id else None
+            return render(request, 'review.html', {
+                'error':   'Please fill in all required fields.',
+                'product': product,
+            })
+
+        product = get_object_or_404(Product, id=product_id)
+
+        Review.objects.create(
+            customer        = request.user,
+            product         = product,
+            overall_rating  = overall_rating,
+            quality_rating  = quality_rating,
+            value_rating    = value_rating,
+            delivery_rating = delivery_rating,
+            title           = title[:200],
+            body            = body[:2000],
+            recommend       = recommend,
+            approved        = False,
+        )
+
+        return redirect('homepage')
+
+    product_id = request.GET.get('product_id', '')
+    product    = Product.objects.filter(id=product_id).first() if product_id else None
+    return render(request, 'review.html', {'product': product})

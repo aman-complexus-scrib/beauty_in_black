@@ -1,20 +1,22 @@
-# app.yaml — Wasmer Edge deployment config
-# Place this in your project root alongside manage.py and wasmer.toml
-
 kind: wasmer.io/App.v0
 name: beautyinblack
-
-package: .
+owner: amansuwl
+package: amansuwl/beautyinblack
 
 env:
   DJANGO_SETTINGS_MODULE: ecommerce.settings
+  DJANGO_SECRET_KEY: "your-django-secret-key-here"
   DEBUG: "False"
-  # All sensitive keys (SECRET_KEY, DB_NAME, STRIPE_SECRET_KEY etc.)
-  # must be set via the Wasmer Dashboard → App → Environment Variables
-  # Do NOT put real secrets in this file
-
-cli_args: web
-
-domains:
-  - beautyinblack.co.uk
-  - www.beautyinblack.co.uk
+  # DATABASE SETTINGS
+  DB_NAME: "beauty_in_black"
+  DB_USER: "postgres"
+  DB_PASSWORD: "postgres123"
+  DB_HOST: "beautyinblack.wasmer.app" 
+  DB_PORT: "5432"
+  # STRIPE SETTINGS
+  STRIPE_SECRET_KEY: "your-stripe-secret-key-here"
+  STRIPE_PUBLIC_KEY: "your-stripe-public-key-here"
+  STRIPE_WEBHOOK_SECRET: "your-stripe-webhook-secret-here"
+  # EMAIL SETTINGS
+  EMAIL_HOST_USER: "your-email-here"
+  EMAIL_HOST_PASSWORD: "your-email-app-password-here"

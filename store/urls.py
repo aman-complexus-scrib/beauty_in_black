@@ -1,4 +1,3 @@
-# Single-page app: everything lives on index.html
 # AJAX endpoints handle cart / wishlist / checkout dynamically
 from django.urls import path
 from store import views
@@ -21,8 +20,9 @@ urlpatterns = [
     path('ajax-add-to-cart/', views.ajax_add_to_cart, name='ajax_add_to_cart'),
     path('ajax-remove-from-cart/', views.ajax_remove_from_cart, name='ajax_remove_from_cart'),
     path('ajax-cart-data/', views.ajax_cart_data, name='ajax_cart_data'),
-    path('ajax-add-to-wishlist/', views.ajax_add_to_wishlist, name='ajax_add_to_wishlist'),
-    path('ajax-remove-from-wishlist/', views.ajax_remove_from_wishlist, name='ajax_remove_from_wishlist'),
+    path('review/', views.review_page, name='review'),
+    path('ajax-wishlist-data/', views.ajax_wishlist_data, name='ajax_wishlist_data'),
+    path('ajax-wishlist-to-cart/', views.ajax_wishlist_to_cart, name='ajax_wishlist_to_cart'),
     path('ajax-orders/', views.ajax_orders, name='ajax_orders'),
     path('create-checkout-session/', views.CreateCheckoutSession.as_view(), name='create_checkout_session'),
     path('success/', views.PaymentSuccess.as_view(), name='payment_success'),
