@@ -1,0 +1,7 @@
+django
+python-dotenv
+psycopg2-binary
+stripe
+Pillow
+whitenoise
+gunicorn
