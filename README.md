@@ -1,2 +1,2 @@
 # beauty_in_black
-Django eCommerce setup. It uses a custom user model, SQLite, and a single “store” app for products, cart, orders, and wish-list. Stripe checkout works, AJAX is bolted on, and emails send.
+Beauty in Black is a robust E-commerce platform built with Python and Django. It features a dynamic frontend using HTML, CSS, and JavaScript, with AJAX for seamless interactions. Secure checkout is handled via Stripe Integration, while SQL (SQLite) manages the backend database for products and user data.
