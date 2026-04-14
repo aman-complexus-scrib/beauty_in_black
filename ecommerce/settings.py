@@ -103,10 +103,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ecommerce.wsgi.application'
 
 # ------------------------------------------------------------------------------
-# DATABASE SECTION 
+# DATABASE SECTION
 # ------------------------------------------------------------------------------
-
-# Check if we are on Vercel/Production by looking for a DB_NAME environment variable
 DB_NAME = os.getenv('DB_NAME')
 
 if DB_NAME:
@@ -124,14 +122,15 @@ if DB_NAME:
         }
     }
 else:
-    # Local development fallback
+    if os.getenv('VERCEL'):
+        raise ValueError("Database configuration failed: DB_NAME environment variable is missing on Vercel.")
+    
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
-    }
-    
+    }  
 # ------------------------------------------------------------------------------
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
