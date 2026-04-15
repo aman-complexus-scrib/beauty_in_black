@@ -1,21 +1,20 @@
 # Single-page architecture: index.html is the only template.
 # Cart, wishlist, checkout, orders all run via AJAX JSON endpoints.
+import json
+import stripe
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse
 from django.views import View
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-import stripe
-import json
 
-from store.models import Product, Category, Brand, Cart, Order, Customer, Wishlist, Review
-
+from .models import Product, Category, Brand, Cart, Order, Customer, Wishlist, Review
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 # ── STATIC PAGES ─────────────────────────────────────────────────────
@@ -661,3 +660,4 @@ def review_page(request):
     product_id = request.GET.get('product_id', '')
     product    = Product.objects.filter(id=product_id).first() if product_id else None
     return render(request, 'review.html', {'product': product})
+
