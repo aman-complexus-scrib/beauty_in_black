@@ -6,7 +6,6 @@ from store.views import create_admin_account
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('setup-admin-9988/', create_admin_account), # Secret link
     path('', include('store.urls')),
 ]
 
