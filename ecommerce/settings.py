@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 import pymysql
 pymysql.install_as_MySQLdb()
 
-pymysql.install_as_MySQLdb()
-
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,22 +16,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ------------------------------------------------------------------------------
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key-for-build-purposes')
 
-# Default to False for safety, but you can toggle it in Vercel settings
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '.vercel.app',        # This allows ALL Vercel deployment URLs
-    '.now.sh',            # Common Vercel alias
+    '.vercel.app',
+    '.now.sh',
     'beautyinblack.co.uk', 
     'www.beautyinblack.co.uk',
     'beautyinblack.wasmer.app',
 ]
 
-# Required for Stripe webhooks and form submissions over HTTPS
 CSRF_TRUSTED_ORIGINS = [
-    'https://beautyinblack.wasmer.app',
+    'https://*.vercel.app',
     'https://beautyinblack.co.uk',
     'https://www.beautyinblack.co.uk',
 ]
@@ -42,11 +38,11 @@ CSRF_TRUSTED_ORIGINS = [
 # PRODUCTION SECURITY HEADERS (only active when DEBUG=False)
 # ------------------------------------------------------------------------------
 if not DEBUG:
-    SECURE_HSTS_SECONDS = 31536000          # 1 year
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = True              # Force HTTPS
-    SESSION_COOKIE_SECURE = True            # Cookies only over HTTPS
+    SECURE_SSL_REDIRECT = False             # Vercel handles HTTPS
+    SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -70,7 +66,7 @@ INSTALLED_APPS = [
 # ------------------------------------------------------------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',   # Must be 2nd, right after SecurityMiddleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -105,15 +101,12 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 # ------------------------------------------------------------------------------
 # DATABASE SECTION
 # ------------------------------------------------------------------------------
-# Force a crash with a USEFUL error if variables are missing
 DB_NAME = os.getenv('DB_NAME')
 
 if not DB_NAME:
-    # If we are on Vercel, this will show up in your "Logs" tab
     if os.getenv('VERCEL'):
         raise ConnectionError("CRITICAL: DB_NAME environment variable is missing in Vercel Dashboard.")
     
-    # Only use SQLite if we are truly running on your local computer
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -121,7 +114,6 @@ if not DB_NAME:
         }
     }
 else:
-    # MySQL configuration
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -133,6 +125,7 @@ else:
             'OPTIONS': {'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'}}
         }
     }  
+
 # ------------------------------------------------------------------------------
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
@@ -159,13 +152,11 @@ USE_TZ        = True
 
 # ------------------------------------------------------------------------------
 # STATIC & MEDIA FILES
-# WhiteNoise serves static files efficiently in production without a CDN
 # ------------------------------------------------------------------------------
 STATIC_URL  = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'          # collectstatic writes here
-STATICFILES_DIRS = [BASE_DIR / 'static']        # Your source static files
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# CompressedManifestStaticFilesStorage adds cache-busting hashes to filenames
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 WHITENOISE_KEEP_FILES_ON_REMOTE = True
 MEDIA_URL  = '/media/'
@@ -185,7 +176,6 @@ STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
 # ------------------------------------------------------------------------------
 # EMAIL (Gmail SMTP)
-# In production, use an App Password from your Google Account security settings
 # ------------------------------------------------------------------------------
 EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST          = 'smtp.gmail.com'
@@ -198,12 +188,12 @@ DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER', 'noreply@beautyinblack.co.uk'
 # ------------------------------------------------------------------------------
 # SESSION
 # ------------------------------------------------------------------------------
-SESSION_COOKIE_AGE        = 1209600   # 2 weeks in seconds
+SESSION_COOKIE_AGE         = 1209600
 SESSION_SAVE_EVERY_REQUEST = False
-SESSION_ENGINE            = 'django.contrib.sessions.backends.db'  # Store in DB
+SESSION_ENGINE             = 'django.contrib.sessions.backends.db'
 
 # ------------------------------------------------------------------------------
-# LOGGING (helps debug Wasmer deployment issues)
+# LOGGING
 # ------------------------------------------------------------------------------
 LOGGING = {
     'version': 1,
