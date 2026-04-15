@@ -1,16 +1,12 @@
 # Required packages:
 #   pip install django python-dotenv psycopg2-binary stripe Pillow whitenoise gunicorn
-
 import os
 from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
-import tempfile
 
+# 1. Load environment variables first
 load_dotenv()
-
-# Force Django to use the Neon URL and explicitly set the Postgres Engine
-DATABASE_URL = os.getenv('DATABASE_URL')
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -18,8 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 # ------------------------------------------------------------------------------
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key-for-build-purposes')
-
-DEBUG = 'True'
+DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -38,21 +33,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # ------------------------------------------------------------------------------
-# PRODUCTION SECURITY HEADERS (only active when DEBUG=False)
-# ------------------------------------------------------------------------------
-if not DEBUG:
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = False             # Vercel handles HTTPS
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-
-# ------------------------------------------------------------------------------
-# APPLICATIONS
+# APPLICATIONS & MIDDLEWARE
 # ------------------------------------------------------------------------------
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -64,9 +45,6 @@ INSTALLED_APPS = [
     'store',
 ]
 
-# ------------------------------------------------------------------------------
-# MIDDLEWARE
-# ------------------------------------------------------------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -79,6 +57,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'ecommerce.urls'
+WSGI_APPLICATION = 'ecommerce.wsgi.application'
 
 # ------------------------------------------------------------------------------
 # TEMPLATES
@@ -99,26 +78,39 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'ecommerce.wsgi.application'
+# ------------------------------------------------------------------------------
+# DATABASE (Neon PostgreSQL)
+# ------------------------------------------------------------------------------
+# We fetch the URL. If it's missing, this setup will fall back to SQLite 
+# so the site doesn't completely crash, giving us a clear signal.
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    # If Vercel fails to provide the URL, fallback to local SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # ------------------------------------------------------------------------------
-# DATABASE SECTION (Neon / Postgres)
-# ------------------------------------------------------------------------------
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True,
-    )
-}
-
-# Ensure the engine is NEVER 'dummy'
-if not DATABASES['default'].get('ENGINE'):
-    DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
-# ------------------------------------------------------------------------------
-# AUTHENTICATION
+# AUTHENTICATION & SESSIONS
 # ------------------------------------------------------------------------------
 AUTH_USER_MODEL = 'store.Customer'
+
+# Using standard database-backed sessions so the Admin login works perfectly
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600
+SESSION_SAVE_EVERY_REQUEST = False
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -152,9 +144,6 @@ WHITENOISE_KEEP_FILES_ON_REMOTE = True
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ------------------------------------------------------------------------------
-# DEFAULT PK FIELD
-# ------------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ------------------------------------------------------------------------------
@@ -165,50 +154,18 @@ STRIPE_PUBLIC_KEY     = os.getenv('STRIPE_PUBLIC_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
 # ------------------------------------------------------------------------------
-# EMAIL (Gmail SMTP)
-# ------------------------------------------------------------------------------
-EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST          = 'smtp.gmail.com'
-EMAIL_PORT          = 587
-EMAIL_USE_TLS       = True
-EMAIL_HOST_USER     = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER', 'noreply@beautyinblack.co.uk')
-
-# ------------------------------------------------------------------------------
-# SESSION
-# ------------------------------------------------------------------------------
-SESSION_COOKIE_AGE         = 1209600
-SESSION_SAVE_EVERY_REQUEST = False
-SESSION_ENGINE             = 'django.contrib.sessions.backends.db'
-
-# ------------------------------------------------------------------------------
 # LOGGING
 # ------------------------------------------------------------------------------
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '[{levelname}] {asctime} {module} {message}',
-            'style': '{',
-        },
-    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
         },
     },
     'root': {
         'handlers': ['console'],
         'level': 'WARNING',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
-            'propagate': False,
-        },
     },
 }
