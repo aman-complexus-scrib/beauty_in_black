@@ -1,6 +1,5 @@
 django>=4.2,<5.1
 python-dotenv
-PyMySQL
 stripe
 Pillow
 whitenoise

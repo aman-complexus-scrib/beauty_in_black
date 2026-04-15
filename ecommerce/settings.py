@@ -4,8 +4,6 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-import pymysql
-pymysql.install_as_MySQLdb()
 
 load_dotenv()
 
@@ -101,30 +99,12 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 # ------------------------------------------------------------------------------
 # DATABASE SECTION
 # ------------------------------------------------------------------------------
-DB_NAME = os.getenv('DB_NAME')
-
-if not DB_NAME:
-    if os.getenv('VERCEL'):
-        raise ConnectionError("CRITICAL: DB_NAME environment variable is missing in Vercel Dashboard.")
-    
-    DATABASES = {
+DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': DB_NAME,
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST'),
-            'PORT': os.getenv('DB_PORT', '3306'),
-            'OPTIONS': {'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'}}
-        }
-    }  
 
 # ------------------------------------------------------------------------------
 # AUTHENTICATION
