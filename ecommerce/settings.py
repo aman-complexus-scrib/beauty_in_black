@@ -157,8 +157,9 @@ STATIC_URL  = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 WHITENOISE_KEEP_FILES_ON_REMOTE = True
+
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -190,7 +191,7 @@ DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER', 'noreply@beautyinblack.co.uk'
 # ------------------------------------------------------------------------------
 SESSION_COOKIE_AGE         = 1209600
 SESSION_SAVE_EVERY_REQUEST = False
-SESSION_ENGINE             = 'django.contrib.sessions.backends.db'
+SESSION_ENGINE             = 'django.contrib.sessions.backends.signed_cookies'
 
 # ------------------------------------------------------------------------------
 # LOGGING

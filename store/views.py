@@ -1,6 +1,5 @@
 # Single-page architecture: index.html is the only template.
 # Cart, wishlist, checkout, orders all run via AJAX JSON endpoints.
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.contrib.auth import authenticate, login, logout
@@ -57,12 +56,10 @@ def _get_csrf(request):
     from django.middleware.csrf import get_token
     return get_token(request)
 
-
 def _cart_count(user):
     if user.is_authenticated:
         return Cart.objects.filter(customer=user).count()
     return 0
-
 
 # ── INDEX (single page) ──────────────────────────────────────────────
 
@@ -87,7 +84,7 @@ class Index(View):
             all_products = all_products.filter(gender=gender)
         if max_price:
             try:
-                all_products = all_products.filter(price__lte=float(max_price))
+                 all_products = all_products.filter(price__lte=float(max_price))
             except ValueError:
                 pass
         if brand_filter:
@@ -102,7 +99,7 @@ class Index(View):
             user_cart        = Cart.objects.filter(customer=request.user).select_related('product')
             cart_product_ids = list(user_cart.values_list('product_id', flat=True))
             cart_items       = [
-                {
+                 {
                     'product':  item.product,
                     'quantity': item.quantity,
                     'subtotal': item.product.price * item.quantity,
@@ -587,7 +584,7 @@ class PaymentSuccess(View):
             'categories':           Category.objects.all(),
             'products':             Product.objects.select_related('category', 'brand').all(),
             'cart_product_ids':     [],
-            'cart_items':           [],
+            'cart_items':          [],
             'cart_total':           0,
             'wishlist_product_ids': [],
             'stripe_public_key':    settings.STRIPE_PUBLIC_KEY,
