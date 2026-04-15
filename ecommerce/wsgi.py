@@ -1,21 +1,21 @@
 import os
 import django
 from django.core.wsgi import get_wsgi_application
-from django.core.management import call_command
+from django.core.management import call_command # This imports the 'migrate' tool
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecommerce.settings')
 
-# Initialize Django
+# 1. Start Django
 django.setup()
 
-# Create the application object for Vercel
+# 2. Create the application for Vercel
 application = get_wsgi_application()
 app = application
 
-# Run migrations automatically
+# 3. The "Builder": This creates your Neon tables automatically
 try:
-    print("Running migrations...")
+    print("Connecting to Neon and building tables...")
     call_command('migrate', interactive=False)
-    print("Migrations completed successfully.")
+    print("Neon database is ready!")
 except Exception as e:
-    print(f"Migration failed: {e}")
+    print(f"Database setup failed: {e}")

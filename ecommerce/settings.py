@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import tempfile
+import dj_database_url
 
 load_dotenv()
 
@@ -101,12 +102,12 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 # DATABASE SECTION
 # ------------------------------------------------------------------------------
 DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(tempfile.gettempdir(), 'db.sqlite3'),
-        }
-    }
-
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
+    )
+}
 # ------------------------------------------------------------------------------
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
