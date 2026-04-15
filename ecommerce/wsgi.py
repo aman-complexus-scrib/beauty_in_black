@@ -1,21 +1,16 @@
 import os
-import django
 from django.core.wsgi import get_wsgi_application
-from django.core.management import call_command # This imports the 'migrate' tool
+from django.contrib.auth import get_user_model
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecommerce.settings')
-
-# 1. Start Django
-django.setup()
-
-# 2. Create the application for Vercel
 application = get_wsgi_application()
 app = application
 
-# 3. The "Builder": This creates your Neon tables automatically
+# Create Admin automatically on startup
 try:
-    print("Connecting to Neon and building tables...")
-    call_command('migrate', interactive=False)
-    print("Neon database is ready!")
+    User = get_user_model()
+    if not User.objects.filter(username='admin_user').exists():
+        User.objects.create_superuser('admin_user', 'admin@example.com', 'YourSecurePassword123')
+        print("Superuser created successfully!")
 except Exception as e:
-    print(f"Database setup failed: {e}")
+    print(f"Startup task failed: {e}")
