@@ -1,15 +1,14 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "ecommerce/wsgi.py",
-      "use": "@vercel/python"
+  "functions": {
+    "ecommerce/wsgi.py": {
+      "runtime": "python3.12"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "ecommerce/wsgi.py"
+      "source": "/(.*)",
+      "destination": "ecommerce/wsgi.py"
     }
   ]
 }
