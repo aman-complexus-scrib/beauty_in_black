@@ -661,3 +661,19 @@ def review_page(request):
     product_id = request.GET.get('product_id', '')
     product    = Product.objects.filter(id=product_id).first() if product_id else None
     return render(request, 'review.html', {'product': product})
+
+# --- TEMPORARY ADMIN CREATOR ---
+from django.http import HttpResponse
+from store.models import Customer
+
+def create_admin_account(request):
+    # Change 'admin@example.com' and 'YourPassword123' to what you want
+    if not Customer.objects.filter(is_superuser=True).exists():
+        Customer.objects.create_superuser(
+            username='admin_user', 
+            email='admin@example.com', 
+            password='YourPassword123'
+        )
+        return HttpResponse("Admin Account Created Successfully!")
+    else:
+        return HttpResponse("Admin account already exists.")
