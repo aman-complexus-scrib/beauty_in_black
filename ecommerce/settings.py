@@ -4,6 +4,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import tempfile
 
 load_dotenv()
 
@@ -102,7 +103,7 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': os.path.join(tempfile.gettempdir(), 'db.sqlite3'),
         }
     }
 
