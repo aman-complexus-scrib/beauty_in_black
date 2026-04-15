@@ -9,6 +9,9 @@ import tempfile
 
 load_dotenv()
 
+# Force Django to use the Neon URL and explicitly set the Postgres Engine
+DATABASE_URL = os.getenv('DATABASE_URL')
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ------------------------------------------------------------------------------
@@ -106,9 +109,12 @@ DATABASES = {
         default=os.getenv('DATABASE_URL'),
         conn_max_age=600,
         ssl_require=True,
-        engine='django.db.backends.postgresql' # Manually force the engine here to avoid issues with dj-database-url auto-detection
     )
 }
+
+# Ensure the engine is NEVER 'dummy'
+if not DATABASES['default'].get('ENGINE'):
+    DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
 # ------------------------------------------------------------------------------
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
@@ -174,7 +180,7 @@ DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER', 'noreply@beautyinblack.co.uk'
 # ------------------------------------------------------------------------------
 SESSION_COOKIE_AGE         = 1209600
 SESSION_SAVE_EVERY_REQUEST = False
-SESSION_ENGINE             = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_ENGINE             = 'django.contrib.sessions.backends.db'
 
 # ------------------------------------------------------------------------------
 # LOGGING
