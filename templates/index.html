@@ -663,14 +663,14 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    fetch('/ajax-cart-data/')
+    fetch('/ajax/cart-data/')
         .then(function(r){ return r.json(); })
         .then(function(data){ updateCartBadge(data.count); });
     loadWishlistPanel();
 });
 
 function loadWishlistPanel() {
-    fetch('/ajax-wishlist-data/')
+    fetch('/ajax/wishlist-data/')
         .then(function(r){ return r.json(); })
         .then(function(data){ renderWishlistPanel(data.items); });
 }
@@ -708,7 +708,7 @@ function renderWishlistPanel(items) {
 }
 
 function moveWishlistItemToCart(productId) {
-    fetch('/ajax-wishlist-to-cart/', {
+    fetch('/ajax/wishlist-to-cart/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ product_id: productId })
@@ -720,7 +720,7 @@ function moveWishlistItemToCart(productId) {
 }
 
 function moveAllWishlistToCart() {
-    fetch('/ajax-wishlist-to-cart/', {
+    fetch('/ajax/wishlist-to-cart/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ move_all: true })
@@ -732,7 +732,7 @@ function moveAllWishlistToCart() {
 }
 
 function removeWishlistItem(productId) {
-    fetch('/ajax-remove-from-wishlist/', {
+    fetch('/ajax/remove-from-wishlist/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ product_id: productId })
@@ -759,10 +759,18 @@ function closeWishlistPanel() {
 }
 
 function getCookie(name) {
-    var value = '; ' + document.cookie;
-    var parts = value.split('; ' + name + '=');
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return '';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 </script>
 {% endblock %}
