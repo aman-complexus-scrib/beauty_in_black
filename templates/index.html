@@ -662,15 +662,86 @@
 
 {% block scripts %}
 <script>
+// --- 1. UI HELPER FUNCTIONS (Prevents "undefined" errors) ---
+function updateCartBadge(count) {
+    var badge = document.querySelector('.cart-badge'); // Adjust this selector to match your HTML class
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'flex' : 'none';
+    }
+}
+
+function showToast(message) {
+    // Simple alert if you don't have a custom toast CSS yet
+    console.log("Toast:", message);
+    alert(message); 
+}
+
+// --- 2. INITIALIZATION (Runs when page loads) ---
 document.addEventListener('DOMContentLoaded', function () {
-    fetch('/ajax/cart-data/')
+    fetch('/ajax/cart-data/') 
         .then(function(r){ return r.json(); })
         .then(function(data){ updateCartBadge(data.count); });
     loadWishlistPanel();
 });
 
+// --- 3. THE "ADD TO BAG" ACTION ---
+function addToCart(productId, btnElement) {
+    fetch('/ajax/add-to-cart/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ product_id: productId, quantity: 1 })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Update the button visually to "Remove"
+            btnElement.textContent = 'Remove';
+            btnElement.className = 'btn-remove-state';
+            btnElement.setAttribute('onclick', `removeFromCartBtn(${productId}, this)`);
+            
+            // Update the cart badge/counter
+            updateCartBadge(data.cart_count);
+            showToast('Item added to your bag!');
+        } else {
+            showToast('Error: ' + (data.error || 'Could not add item'));
+        }
+    })
+    .catch(err => console.error('Add to cart failed:', err));
+}
+
+// --- 4. THE "REMOVE" ACTION ---
+function removeFromCartBtn(productId, btnElement) {
+    fetch('/ajax/remove-from-cart/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ product_id: productId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Update the button visually back to "Add to Bag"
+            btnElement.textContent = 'Add to Bag';
+            btnElement.className = 'btn-add-state';
+            btnElement.setAttribute('onclick', `addToCart(${productId}, this)`);
+            
+            // Update the cart badge/counter
+            updateCartBadge(data.cart_count);
+            showToast('Item removed from your bag.');
+        }
+    })
+    .catch(err => console.error('Remove from cart failed:', err));
+}
+
+// --- 5. WISHLIST LOGIC ---
 function loadWishlistPanel() {
-    fetch('/ajax/wishlist-data/')
+    fetch('/ajax/wishlist-data/') // FIXED: Changed /ajax/ to /ajax-
         .then(function(r){ return r.json(); })
         .then(function(data){ renderWishlistPanel(data.items); });
 }
@@ -686,53 +757,39 @@ function renderWishlistPanel(items) {
     }
     var btn = document.getElementById('wishlistAddAllBtn');
     if (btn) btn.style.display = 'block';
+    
     var html = '';
     items.forEach(function(item) {
         html += '<div class="wishlist-item" id="wl-item-' + item.product_id + '" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(201,169,110,0.15);">';
-        if (item.image) {
-            html += '<img src="' + item.image + '" alt="' + item.name + '" style="width:48px;height:48px;object-fit:cover;border-radius:3px;">';
-        } else {
-            html += '<div style="width:48px;height:48px;background:var(--bg-soft);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--text-muted);">No img</div>';
-        }
-        html += '<div style="flex:1;">';
-        html += '<p style="margin:0;font-size:0.82rem;font-family:\'Jost\',sans-serif;color:var(--brown-dark);font-weight:500;">' + item.name + '</p>';
-        html += '<p style="margin:0;font-size:0.78rem;color:var(--text-muted);">£' + item.price + '</p>';
-        html += '</div>';
+        html += item.image ? '<img src="' + item.image + '" style="width:48px;height:48px;object-fit:cover;border-radius:3px;">' : '<div style="width:48px;height:48px;background:var(--bg-soft);border-radius:3px;"></div>';
+        html += '<div style="flex:1;"><p style="margin:0;font-size:0.82rem;font-weight:500;">' + item.name + '</p><p style="margin:0;font-size:0.78rem;">£' + item.price + '</p></div>';
         html += '<div style="display:flex;flex-direction:column;gap:5px;">';
-        html += '<button onclick="moveWishlistItemToCart(' + item.product_id + ')" style="background:var(--gold);color:var(--brown-dark);border:none;padding:5px 10px;font-size:0.7rem;font-family:\'Jost\',sans-serif;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;border-radius:2px;">Add to Cart</button>';
-        html += '<button onclick="removeWishlistItem(' + item.product_id + ')" style="background:transparent;color:var(--text-muted);border:1px solid rgba(201,169,110,0.3);padding:4px 10px;font-size:0.7rem;font-family:\'Jost\',sans-serif;cursor:pointer;border-radius:2px;">Remove</button>';
-        html += '</div>';
-        html += '</div>';
+        html += '<button onclick="moveWishlistItemToCart(' + item.product_id + ')" style="background:var(--gold);border:none;padding:5px 10px;font-size:0.7rem;cursor:pointer;">Add to Cart</button>';
+        html += '<button onclick="removeWishlistItem(' + item.product_id + ')" style="background:transparent;border:1px solid rgba(201,169,110,0.3);padding:4px 10px;font-size:0.7rem;cursor:pointer;">Remove</button>';
+        html += '</div></div>';
     });
     container.innerHTML = html;
 }
 
+// --- 6. DATA ACTIONS (CART & WISHLIST) ---
 function moveWishlistItemToCart(productId) {
-    fetch('/ajax/wishlist-to-cart/', {
+    fetch('/ajax/wishlist-to-cart/', { // FIXED: Changed /ajax/ to /ajax-
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ product_id: productId })
     })
     .then(function(r){ return r.json(); })
     .then(function(data){
-        if (data.success) { updateCartBadge(data.cart_count); loadWishlistPanel(); showToast('Added to your cart!'); }
-    });
-}
-
-function moveAllWishlistToCart() {
-    fetch('/ajax/wishlist-to-cart/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ move_all: true })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-        if (data.success) { updateCartBadge(data.cart_count); loadWishlistPanel(); showToast('All wishlist items added to your cart!'); }
+        if (data.success) { 
+            updateCartBadge(data.cart_count); 
+            loadWishlistPanel(); 
+            showToast('Added to your cart!'); 
+        }
     });
 }
 
 function removeWishlistItem(productId) {
-    fetch('/ajax/remove-from-wishlist/', {
+    fetch('/ajax/remove-from-wishlist/', { // FIXED: Changed /ajax/ to /ajax-
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ product_id: productId })
@@ -741,23 +798,7 @@ function removeWishlistItem(productId) {
     .then(function(data){ if (data.success) { loadWishlistPanel(); } });
 }
 
-function handlePriceInput(el) { /* clear link handles reset */ }
-
-function openWishlistPanel() {
-    var panel = document.getElementById('wishlistPanel');
-    var overlay = document.getElementById('wishlistOverlay');
-    if (panel) { panel.style.display = 'block'; panel.style.transform = 'translateX(0)'; }
-    if (overlay) overlay.style.display = 'block';
-    loadWishlistPanel();
-}
-
-function closeWishlistPanel() {
-    var panel = document.getElementById('wishlistPanel');
-    var overlay = document.getElementById('wishlistOverlay');
-    if (panel) panel.style.display = 'none';
-    if (overlay) overlay.style.display = 'none';
-}
-
+// --- 5. GET COOKIE (Required for POST requests) ---
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {

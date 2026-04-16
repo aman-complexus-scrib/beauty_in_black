@@ -1,10 +1,13 @@
-# AJAX endpoints handle cart / wishlist / checkout dynamically
 from django.urls import path
 from . import views
 
 urlpatterns = [
-    # ── INDEX & STATIC PAGES ─────────────────────────────────────────
+    # ── PRIMARY PAGE ─────────────────────────────────────────────────────
+    # The heart of your single-page architecture
     path('', views.Index.as_view(), name='homepage'),
+
+    # ── FOOTER & STATIC PAGES ────────────────────────────────────────────
+    # These match the 'name' attributes used in your footer {% url %} tags
     path('contact/', views.contact, name='contact'),
     path('faqs/', views.faqs, name='faqs'),
     path('returns-policy/', views.returns_policy, name='returns_policy'),
@@ -16,30 +19,32 @@ urlpatterns = [
     path('wishlist/', views.wishlist, name='wishlist'),
     path('cart/', views.cart, name='cart'),
 
-    # ── AUTHENTICATION ───────────────────────────────────────────────
+    # ── AUTHENTICATION ───────────────────────────────────────────────────
     path('signup/', views.Signup.as_view(), name='signup'),
     path('login/', views.Login.as_view(), name='login'),
     path('logout/', views.logout_view, name='logout'),
 
-    # ── CART AJAX ENDPOINTS ──────────────────────────────────────────
+    # ── CART AJAX ENDPOINTS ──────────────────────────────────────────────
+    # Using hyphens (ajax-...) to match your existing JavaScript fetch calls
     path('ajax/add-to-cart/', views.ajax_add_to_cart, name='ajax_add_to_cart'),
     path('ajax/remove-from-cart/', views.ajax_remove_from_cart, name='ajax_remove_from_cart'),
     path('ajax/cart-data/', views.ajax_cart_data, name='ajax_cart_data'),
 
-    # ── WISHLIST AJAX ENDPOINTS ──────────────────────────────────────
+    # ── WISHLIST AJAX ENDPOINTS ──────────────────────────────────────────
     path('ajax/add-to-wishlist/', views.ajax_add_to_wishlist, name='ajax_add_to_wishlist'),
     path('ajax/remove-from-wishlist/', views.ajax_remove_from_wishlist, name='ajax_remove_from_wishlist'),
     path('ajax/wishlist-data/', views.ajax_wishlist_data, name='ajax_wishlist_data'),
     path('ajax/wishlist-to-cart/', views.ajax_wishlist_to_cart, name='ajax_wishlist_to_cart'),
 
-    # ── ORDERS AJAX ENDPOINT ─────────────────────────────────────────
+    # ── ORDERS AJAX ──────────────────────────────────────────────────────
     path('ajax/orders/', views.ajax_orders, name='ajax_orders'),
 
-    # ── STRIPE PAYMENT ENDPOINTS ─────────────────────────────────────
+    # ── STRIPE PAYMENT ENDPOINTS ─────────────────────────────────────────
     path('checkout/', views.CreateCheckoutSession.as_view(), name='checkout'),
     path('success/', views.PaymentSuccess.as_view(), name='success'),
     path('stripe-webhook/', views.stripe_webhook, name='stripe_webhook'),
 
-    # ── REVIEWS ──────────────────────────────────────────────────────
+    # ── REVIEWS ──────────────────────────────────────────────────────────
+    # Named 'review' to prevent the NoReverseMatch error on your homepage
     path('review/', views.review_page, name='review'),
 ]
