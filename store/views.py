@@ -350,114 +350,68 @@ def ajax_remove_from_wishlist(request):
 
 
 def ajax_wishlist_data(request):
-    """GET  →  full wishlist item list as JSON (used to populate wishlist panel)"""
-    if request.user.is_authenticated:
-        wishlist_items = Wishlist.objects.filter(customer=request.user).select_related('product')
-        items = []
-        for entry in wishlist_items:
-            p = entry.product
-            items.append({
-                'product_id': p.id,
-                'name':       p.name,
-                'price':      str(p.price),
-                'image':      p.image.url if p.image else '',
-            })
-        return JsonResponse({'items': items, 'count': len(items)})
-    else:
-        wishlist = request.session.get('wishlist', [])
-        products = Product.objects.filter(id__in=wishlist)
-        items = []
-        for p in products:
-            items.append({
-                'product_id': p.id,
-                'name':       p.name,
-                'price':      str(p.price),
-                'image':      p.image.url if p.image else '',
-            })
-        return JsonResponse({'items': items, 'count': len(items)})
+    """GET → returns wishlist items as JSON"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'items': [], 'count': 0})
+
+    wishlist_qs = Wishlist.objects.filter(customer=request.user).select_related('product')
+    items = [
+        {
+            'product_id': w.product.id,
+            'name':       w.product.name,
+            'price':      str(w.product.price),
+            'image':      w.product.image.url if w.product.image else '',
+        }
+        for w in wishlist_qs
+    ]
+    return JsonResponse({'items': items, 'count': len(items)})
 
 
 def ajax_wishlist_to_cart(request):
-    """POST JSON { product_id } or { move_all: true }
-       Moves one or all wishlist items to the cart, then removes them from the wishlist.
-       Returns { success, cart_count }
-    """
+    """POST JSON { product_id } → moves wishlist item into cart"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'login_required'})
 
     try:
         data = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 
-    move_all   = data.get('move_all', False)
     product_id = data.get('product_id')
+    product = get_object_or_404(Product, id=product_id)
 
-    if request.user.is_authenticated:
-        if move_all:
-            wishlist_items = Wishlist.objects.filter(customer=request.user).select_related('product')
-            for entry in wishlist_items:
-                item, created = Cart.objects.get_or_create(customer=request.user, product=entry.product)
-                if not created:
-                    item.quantity += 1
-                    item.save()
-                else:
-                    item.quantity = 1
-                    item.save()
-            wishlist_items.delete()
-        else:
-            if not product_id:
-                return JsonResponse({'success': False, 'error': 'Missing product_id'}, status=400)
-            product = get_object_or_404(Product, id=product_id)
-            item, created = Cart.objects.get_or_create(customer=request.user, product=product)
-            if not created:
-                item.quantity += 1
-                item.save()
-            else:
-                item.quantity = 1
-                item.save()
-            Wishlist.objects.filter(customer=request.user, product=product).delete()
-        cart_count = Cart.objects.filter(customer=request.user).count()
-    else:
-        wishlist = request.session.get('wishlist', [])
-        cart     = request.session.get('cart', {})
-        if move_all:
-            for pid in wishlist:
-                cart[pid] = cart.get(pid, 0) + 1
-            request.session['wishlist'] = []
-        else:
-            if not product_id:
-                return JsonResponse({'success': False, 'error': 'Missing product_id'}, status=400)
-            pid = str(product_id)
-            cart[pid] = cart.get(pid, 0) + 1
-            request.session['wishlist'] = [i for i in wishlist if i != pid]
-        request.session['cart'] = cart
-        cart_count = len(cart)
+    item, created = Cart.objects.get_or_create(customer=request.user, product=product)
+    if not created:
+        item.quantity += 1
+        item.save()
 
+    Wishlist.objects.filter(customer=request.user, product=product).delete()
+    cart_count = Cart.objects.filter(customer=request.user).count()
     return JsonResponse({'success': True, 'cart_count': cart_count})
 
 
 # ── ORDERS AJAX ───────────────────────────────────────────────────────
 
 def ajax_orders(request):
-    """GET  →  order list as JSON (used by orders panel on index.html)"""
+    """GET → returns the current user's orders as JSON"""
     if not request.user.is_authenticated:
         return JsonResponse({'orders': []})
 
-    orders = Order.objects.filter(customer=request.user).select_related('product').order_by('-created_at')
-    data = []
-    for o in orders:
-        data.append({
-            'id':         o.id,
-            'product':    o.product.name,
-            'quantity':   o.quantity,
-            'price':      str(o.price),
-            'total':      str(o.price * o.quantity),
-            'address':    o.address,
-            'paid':       o.paid,
-            'created_at': o.created_at.strftime('%d %b %Y'),
-        })
-    return JsonResponse({'orders': data})
+    order_qs = Order.objects.filter(customer=request.user).select_related('product').order_by('-created_at')
+    orders = [
+        {
+            'product':    item.product.name,
+            'quantity':   item.quantity,
+            'total':      str(item.price * item.quantity),
+            'paid':       item.paid,
+            'created_at': item.created_at.strftime('%d %b %Y'),
+        }
+        for item in order_qs
+    ]
+    return JsonResponse({'orders': orders})
 
 
 # ── STRIPE CHECKOUT ───────────────────────────────────────────────────

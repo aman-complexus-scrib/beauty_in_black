@@ -662,86 +662,31 @@
 
 {% block scripts %}
 <script>
-// --- 1. UI HELPER FUNCTIONS (Prevents "undefined" errors) ---
-function updateCartBadge(count) {
-    var badge = document.querySelector('.cart-badge'); // Adjust this selector to match your HTML class
-    if (badge) {
-        badge.textContent = count;
-        badge.style.display = count > 0 ? 'flex' : 'none';
-    }
-}
-
-function showToast(message) {
-    // Simple alert if you don't have a custom toast CSS yet
-    console.log("Toast:", message);
-    alert(message); 
-}
-
-// --- 2. INITIALIZATION (Runs when page loads) ---
+// ── PAGE INIT ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
-    fetch('/ajax/cart-data/') 
+    // Sync cart badge on page load using base.html's loadCartPanel data
+    fetch('/ajax-cart-data/')
         .then(function(r){ return r.json(); })
         .then(function(data){ updateCartBadge(data.count); });
+
+    // Pre-load wishlist panel data in the background
     loadWishlistPanel();
 });
 
-// --- 3. THE "ADD TO BAG" ACTION ---
-function addToCart(productId, btnElement) {
-    fetch('/ajax/add-to-cart/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ product_id: productId, quantity: 1 })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            // Update the button visually to "Remove"
-            btnElement.textContent = 'Remove';
-            btnElement.className = 'btn-remove-state';
-            btnElement.setAttribute('onclick', `removeFromCartBtn(${productId}, this)`);
-            
-            // Update the cart badge/counter
-            updateCartBadge(data.cart_count);
-            showToast('Item added to your bag!');
-        } else {
-            showToast('Error: ' + (data.error || 'Could not add item'));
-        }
-    })
-    .catch(err => console.error('Add to cart failed:', err));
+// ── WISHLIST PANEL ───────────────────────────────────────────
+function openWishlistPanel() {
+    document.getElementById('wishlistPanel').style.display = 'block';
+    document.getElementById('wishlistOverlay').style.display = 'block';
+    loadWishlistPanel();
 }
 
-// --- 4. THE "REMOVE" ACTION ---
-function removeFromCartBtn(productId, btnElement) {
-    fetch('/ajax/remove-from-cart/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ product_id: productId })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            // Update the button visually back to "Add to Bag"
-            btnElement.textContent = 'Add to Bag';
-            btnElement.className = 'btn-add-state';
-            btnElement.setAttribute('onclick', `addToCart(${productId}, this)`);
-            
-            // Update the cart badge/counter
-            updateCartBadge(data.cart_count);
-            showToast('Item removed from your bag.');
-        }
-    })
-    .catch(err => console.error('Remove from cart failed:', err));
+function closeWishlistPanel() {
+    document.getElementById('wishlistPanel').style.display = 'none';
+    document.getElementById('wishlistOverlay').style.display = 'none';
 }
 
-// --- 5. WISHLIST LOGIC ---
 function loadWishlistPanel() {
-    fetch('/ajax/wishlist-data/') // FIXED: Changed /ajax/ to /ajax-
+    fetch('/ajax-wishlist-data/')
         .then(function(r){ return r.json(); })
         .then(function(data){ renderWishlistPanel(data.items); });
 }
@@ -749,69 +694,70 @@ function loadWishlistPanel() {
 function renderWishlistPanel(items) {
     var container = document.getElementById('wishlistItemsContainer');
     if (!container) return;
+
+    var btn = document.getElementById('wishlistAddAllBtn');
+
     if (!items || items.length === 0) {
         container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">Your wishlist is empty.</p>';
-        var btn = document.getElementById('wishlistAddAllBtn');
         if (btn) btn.style.display = 'none';
         return;
     }
-    var btn = document.getElementById('wishlistAddAllBtn');
+
     if (btn) btn.style.display = 'block';
-    
+
     var html = '';
     items.forEach(function(item) {
-        html += '<div class="wishlist-item" id="wl-item-' + item.product_id + '" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(201,169,110,0.15);">';
-        html += item.image ? '<img src="' + item.image + '" style="width:48px;height:48px;object-fit:cover;border-radius:3px;">' : '<div style="width:48px;height:48px;background:var(--bg-soft);border-radius:3px;"></div>';
-        html += '<div style="flex:1;"><p style="margin:0;font-size:0.82rem;font-weight:500;">' + item.name + '</p><p style="margin:0;font-size:0.78rem;">£' + item.price + '</p></div>';
-        html += '<div style="display:flex;flex-direction:column;gap:5px;">';
-        html += '<button onclick="moveWishlistItemToCart(' + item.product_id + ')" style="background:var(--gold);border:none;padding:5px 10px;font-size:0.7rem;cursor:pointer;">Add to Cart</button>';
-        html += '<button onclick="removeWishlistItem(' + item.product_id + ')" style="background:transparent;border:1px solid rgba(201,169,110,0.3);padding:4px 10px;font-size:0.7rem;cursor:pointer;">Remove</button>';
-        html += '</div></div>';
+        html += '<div id="wl-item-' + item.product_id + '" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(201,169,110,0.15);">';
+        html += item.image
+            ? '<img src="' + item.image + '" style="width:48px;height:48px;object-fit:cover;border-radius:3px;">'
+            : '<div style="width:48px;height:48px;background:var(--bg-soft);border-radius:3px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-image" style="color:var(--text-muted);"></i></div>';
+        html += '<div style="flex:1;">'
+            + '<p style="margin:0;font-size:0.82rem;font-weight:500;color:var(--text-main);">' + item.name + '</p>'
+            + '<p style="margin:0;font-size:0.78rem;color:var(--accent);">£' + parseFloat(item.price).toFixed(2) + '</p>'
+            + '</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:5px;">'
+            + '<button onclick="moveWishlistItemToCart(' + item.product_id + ')" style="background:var(--gold);border:none;padding:5px 10px;font-size:0.7rem;cursor:pointer;color:var(--brown-dark);">Add to Bag</button>'
+            + '<button onclick="removeWishlistItem(' + item.product_id + ')" style="background:transparent;border:1px solid rgba(201,169,110,0.3);padding:4px 10px;font-size:0.7rem;cursor:pointer;color:var(--text-muted);">Remove</button>'
+            + '</div>';
+        html += '</div>';
     });
     container.innerHTML = html;
 }
 
-// --- 6. DATA ACTIONS (CART & WISHLIST) ---
 function moveWishlistItemToCart(productId) {
-    fetch('/ajax/wishlist-to-cart/', { // FIXED: Changed /ajax/ to /ajax-
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ product_id: productId })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-        if (data.success) { 
-            updateCartBadge(data.cart_count); 
-            loadWishlistPanel(); 
-            showToast('Added to your cart!'); 
-        }
-    });
+    apiFetch('/ajax-wishlist-to-cart/', { product_id: productId })
+        .then(function(data) {
+            if (data.success) {
+                updateCartBadge(data.cart_count);
+                loadWishlistPanel();
+                showToast('Added to your bag!');
+            }
+        });
 }
 
 function removeWishlistItem(productId) {
-    fetch('/ajax/remove-from-wishlist/', { // FIXED: Changed /ajax/ to /ajax-
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ product_id: productId })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data){ if (data.success) { loadWishlistPanel(); } });
+    apiFetch('/ajax-remove-from-wishlist/', { product_id: productId })
+        .then(function(data) {
+            if (data.success) {
+                loadWishlistPanel();
+                showToast('Removed from wishlist.');
+            }
+        });
 }
 
-// --- 5. GET COOKIE (Required for POST requests) ---
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
+function moveAllWishlistToCart() {
+    var items = document.querySelectorAll('[id^="wl-item-"]');
+    var promises = [];
+    items.forEach(function(el) {
+        var pid = el.id.replace('wl-item-', '');
+        promises.push(apiFetch('/ajax-wishlist-to-cart/', { product_id: parseInt(pid) }));
+    });
+    Promise.all(promises).then(function(results) {
+        var last = results[results.length - 1];
+        if (last && last.cart_count !== undefined) updateCartBadge(last.cart_count);
+        loadWishlistPanel();
+        showToast('All wishlist items added to bag!');
+    });
 }
 </script>
 {% endblock %}
