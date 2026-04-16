@@ -27,9 +27,8 @@ ALLOWED_HOSTS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    'https://beauty-in-black-vv5t.vercel.app',
     'https://*.vercel.app',
-    'https://beautyinblack.co.uk',
-    'https://www.beautyinblack.co.uk',
 ]
 
 # ------------------------------------------------------------------------------
@@ -121,6 +120,9 @@ AUTH_USER_MODEL = 'store.Customer'
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 1209600
 SESSION_SAVE_EVERY_REQUEST = False
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
