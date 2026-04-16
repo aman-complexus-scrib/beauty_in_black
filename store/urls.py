@@ -41,5 +41,5 @@ urlpatterns = [
     path('stripe-webhook/', views.stripe_webhook, name='stripe_webhook'),
 
     # ── REVIEWS ──────────────────────────────────────────────────────
-    path('review/', views.review_page, name='review_page'),
+    path('review/', views.review_page, name='review'),
 ]
