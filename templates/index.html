@@ -662,99 +662,202 @@
 
 {% block scripts %}
 <script>
-/* ── PAGE INIT ─────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function () {
-    // Sync cart badge on load using base.html's already-correct endpoint
-    fetch('/ajax-cart-data/')
-        .then(function(r){ return r.json(); })
-        .then(function(data){ updateCartBadge(data.count); });
+/* ── HELPER: GET CSRF TOKEN ── */
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
+/* ── UI HELPERS ── */
+function updateCartBadge(count) {
+    const badge = document.querySelector('.cart-count') || document.getElementById('cart-count-badge');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'flex' : 'none';
+    }
+}
+
+function showToast(msg) {
+    console.log("Toast:", msg);
+    alert(msg); // You can replace this with a fancy toast notification later
+}
+
+/* ── INITIALIZATION ── */
+document.addEventListener('DOMContentLoaded', function () {
+    fetch('/ajax-cart-data/')
+        .then(r => r.json())
+        .then(data => { if(data.count !== undefined) updateCartBadge(data.count); });
     loadWishlistPanel();
 });
 
-/* ── WISHLIST PANEL ────────────────────────────────────────── */
+/* ── MAIN ACTIONS: ADD / REMOVE ── */
+function addToCart(productId, btnElement) {
+    fetch('/ajax-add-to-cart/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ product_id: productId, quantity: 1 })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            btnElement.textContent = 'Remove';
+            btnElement.className = 'btn-remove-state';
+            btnElement.setAttribute('onclick', `removeFromCartBtn(${productId}, this)`);
+            updateCartBadge(data.cart_count);
+            showToast('Added to bag!');
+        }
+    });
+}
+
+function removeFromCartBtn(productId, btnElement) {
+    fetch('/ajax-remove-from-cart/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ product_id: productId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            btnElement.textContent = 'Add to Bag';
+            btnElement.className = 'btn-add-state';
+            btnElement.setAttribute('onclick', `addToCart(${productId}, this)`);
+            updateCartBadge(data.cart_count);
+            showToast('Removed from bag.');
+        }
+    });
+}
+
+function toggleWishlist(productId, btnElement) {
+    const icon = btnElement.querySelector('i');
+    const isAdding = icon.classList.contains('far');
+    const url = isAdding ? '/ajax-add-to-wishlist/' : '/ajax-remove-from-wishlist/';
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ product_id: productId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            if (isAdding) {
+                icon.classList.replace('far', 'fas');
+                btnElement.classList.add('wishlist-active');
+            } else {
+                icon.classList.replace('fas', 'far');
+                btnElement.classList.remove('wishlist-active');
+            }
+            loadWishlistPanel();
+        }
+    });
+}
+
+/* ── WISHLIST PANEL LOGIC ── */
 function openWishlistPanel() {
-    document.getElementById('wishlistPanel').style.display = 'block';
-    document.getElementById('wishlistOverlay').style.display = 'block';
+    const panel = document.getElementById('wishlistPanel');
+    const overlay = document.getElementById('wishlistOverlay');
+    if(panel) panel.style.display = 'block';
+    if(overlay) overlay.style.display = 'block';
     loadWishlistPanel();
 }
 
 function closeWishlistPanel() {
-    document.getElementById('wishlistPanel').style.display = 'none';
-    document.getElementById('wishlistOverlay').style.display = 'none';
+    const panel = document.getElementById('wishlistPanel');
+    const overlay = document.getElementById('wishlistOverlay');
+    if(panel) panel.style.display = 'none';
+    if(overlay) overlay.style.display = 'none';
 }
 
 function loadWishlistPanel() {
     fetch('/ajax-wishlist-data/')
-        .then(function(r){ return r.json(); })
-        .then(function(data){ renderWishlistPanel(data.items); });
+        .then(r => r.json())
+        .then(data => { renderWishlistPanel(data.items); });
 }
 
 function renderWishlistPanel(items) {
-    var container = document.getElementById('wishlistItemsContainer');
+    const container = document.getElementById('wishlistItemsContainer');
     if (!container) return;
-    var btn = document.getElementById('wishlistAddAllBtn');
-
     if (!items || items.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">Your wishlist is empty.</p>';
-        if (btn) btn.style.display = 'none';
+        container.innerHTML = '<p style="text-align:center; padding:20px;">Your wishlist is empty.</p>';
         return;
     }
-
-    if (btn) btn.style.display = 'block';
-    var html = '';
-    items.forEach(function(item) {
-        html += '<div id="wl-item-' + item.product_id + '" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(201,169,110,0.15);">';
-        html += item.image
-            ? '<img src="' + item.image + '" style="width:48px;height:48px;object-fit:cover;border-radius:3px;">'
-            : '<div style="width:48px;height:48px;background:var(--bg-soft);border-radius:3px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-image" style="color:var(--text-muted);"></i></div>';
-        html += '<div style="flex:1;">'
-            + '<p style="margin:0;font-size:0.82rem;font-weight:500;color:var(--text-main);">' + item.name + '</p>'
-            + '<p style="margin:0;font-size:0.78rem;color:var(--accent);">£' + parseFloat(item.price).toFixed(2) + '</p>'
-            + '</div>';
-        html += '<div style="display:flex;flex-direction:column;gap:5px;">'
-            + '<button onclick="moveWishlistItemToCart(' + item.product_id + ')" style="background:var(--gold);border:none;padding:5px 10px;font-size:0.7rem;cursor:pointer;color:var(--brown-dark);">Add to Bag</button>'
-            + '<button onclick="removeWishlistItem(' + item.product_id + ')" style="background:transparent;border:1px solid rgba(201,169,110,0.3);padding:4px 10px;font-size:0.7rem;cursor:pointer;color:var(--text-muted);">Remove</button>'
-            + '</div>';
-        html += '</div>';
+    let html = '';
+    items.forEach(item => {
+        html += `
+            <div class="wishlist-item" id="wl-item-${item.product_id}" style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee;">
+                <img src="${item.image}" style="width:50px; height:50px; object-fit:cover;">
+                <div style="flex:1;">
+                    <p style="margin:0; font-size:0.85rem;">${item.name}</p>
+                    <p style="margin:0; font-size:0.8rem; color:gray;">£${item.price}</p>
+                </div>
+                <button onclick="moveWishlistItemToCart(${item.product_id})" style="font-size:0.7rem;">Add to Bag</button>
+                <button onclick="removeWishlistItem(${item.product_id})" style="font-size:0.7rem;">×</button>
+            </div>`;
     });
     container.innerHTML = html;
 }
 
+/* ── WISHLIST TO CART ACTIONS ── */
 function moveWishlistItemToCart(productId) {
-    apiFetch('/ajax-wishlist-to-cart/', { product_id: productId })
-        .then(function(data) {
-            if (data.success) {
-                updateCartBadge(data.cart_count);
-                loadWishlistPanel();
-                showToast('Added to your bag!');
-            }
-        });
+    fetch('/ajax-wishlist-to-cart/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ product_id: productId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            updateCartBadge(data.cart_count);
+            loadWishlistPanel();
+            showToast('Added to your bag!');
+        }
+    });
 }
 
 function removeWishlistItem(productId) {
-    apiFetch('/ajax-remove-from-wishlist/', { product_id: productId })
-        .then(function(data) {
-            if (data.success) {
-                loadWishlistPanel();
-                showToast('Removed from wishlist.');
-            }
-        });
+    fetch('/ajax-remove-from-wishlist/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ product_id: productId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            loadWishlistPanel();
+            showToast('Removed from wishlist.');
+        }
+    });
 }
 
 function moveAllWishlistToCart() {
-    var items = document.querySelectorAll('[id^="wl-item-"]');
-    var promises = [];
-    items.forEach(function(el) {
-        var pid = parseInt(el.id.replace('wl-item-', ''));
-        promises.push(apiFetch('/ajax-wishlist-to-cart/', { product_id: pid }));
+    // This calls the specific 'move_all' logic in your views.py
+    fetch('/ajax-wishlist-to-cart/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ move_all: true })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            updateCartBadge(data.cart_count);
+            loadWishlistPanel();
+            showToast('All wishlist items moved to bag!');
+        }
     });
-    Promise.all(promises).then(function(results) {
-        var last = results[results.length - 1];
-        if (last && last.cart_count !== undefined) updateCartBadge(last.cart_count);
-        loadWishlistPanel();
-        showToast('All wishlist items added to bag!');
-    });
+}
+
+function redirectToCheckout() {
+    window.location.href = '/create-checkout-session/';
 }
 </script>
 {% endblock %}

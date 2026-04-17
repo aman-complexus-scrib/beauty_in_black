@@ -66,8 +66,10 @@ class Index(View):
     def get(self, request):
         categories   = Category.objects.all()
         brands       = Brand.objects.all()
+        # Optimization: select_related reduces database hits
         all_products = Product.objects.select_related('category', 'brand').all()
 
+        # Filtering logic
         q             = request.GET.get('q', '').strip()
         category_id   = request.GET.get('category', '')
         gender        = request.GET.get('gender', '')
@@ -91,13 +93,19 @@ class Index(View):
         if category_name:
             all_products = all_products.filter(category__name__icontains=category_name)
 
+        # CART LOGIC
         cart_product_ids = []
         cart_items       = []
         cart_total       = 0
+        
         if request.user.is_authenticated:
-            user_cart        = Cart.objects.filter(customer=request.user).select_related('product')
+            # If your model is CartItem, change 'Cart' to 'CartItem' below:
+            user_cart = Cart.objects.filter(customer=request.user).select_related('product')
+            
+            # This list is what the "Add to Bag / Remove" toggle uses:
             cart_product_ids = list(user_cart.values_list('product_id', flat=True))
-            cart_items       = [
+            
+            cart_items = [
                  {
                     'product':  item.product,
                     'quantity': item.quantity,
@@ -107,40 +115,41 @@ class Index(View):
             ]
             cart_total = sum(i['subtotal'] for i in cart_items)
 
+        # WISHLIST LOGIC
         wishlist_product_ids = []
         if request.user.is_authenticated:
             wishlist_product_ids = list(
                 Wishlist.objects.filter(customer=request.user).values_list('product_id', flat=True)
             )
 
+        # QUICK VIEW / MODAL LOGIC
         selected_product = None
         product_id_param = request.GET.get('product')
         if product_id_param:
             selected_product = Product.objects.filter(id=product_id_param).first()
 
-        # Fetch approved homepage reviews to display at the bottom of the page
+        # REVIEWS
         homepage_reviews = Review.objects.filter(approved=True).select_related('customer').order_by('-created_at')[:5]
 
         return render(request, 'index.html', {
-            'products':            all_products,
-            'categories':          categories,
-            'brands':              brands,
-            'selected_category':   category_id,
-            'selected_gender':     gender,
-            'q':                   q,
-            'max_price':           max_price,
-            'brand_filter':        brand_filter,
-            'category_name':       category_name,
-            'cart_product_ids':    cart_product_ids,
-            'cart_items':          cart_items,
-            'cart_total':          cart_total,
+            'products':             all_products,
+            'categories':           categories,
+            'brands':               brands,
+            'selected_category':    category_id,
+            'selected_gender':      gender,
+            'q':                    q,
+            'max_price':            max_price,
+            'brand_filter':         brand_filter,
+            'category_name':        category_name,
+            'cart_product_ids':     cart_product_ids, # Matches template {% if product.id in cart_product_ids %}
+            'cart_items':           cart_items,
+            'cart_total':           cart_total,
             'wishlist_product_ids': wishlist_product_ids,
-            'selected_product':    selected_product,
-            'stripe_public_key':   settings.STRIPE_PUBLIC_KEY,
-            'homepage_reviews':    homepage_reviews,
+            'selected_product':     selected_product,
+            'stripe_public_key':    settings.STRIPE_PUBLIC_KEY,
+            'homepage_reviews':     homepage_reviews,
         })
-
-
+        
 # ── AUTH ─────────────────────────────────────────────────────────────
 
 class Signup(View):
