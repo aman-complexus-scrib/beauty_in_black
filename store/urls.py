@@ -23,22 +23,20 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
 
     # ── CART AJAX ENDPOINTS ──────────────────────────────────────────────
-    # Paths use hyphens to match the fetch() calls in base.html
+    path('ajax-cart-data/', views.ajax_cart_data, name='ajax_cart_data'),
     path('ajax-add-to-cart/', views.ajax_add_to_cart, name='ajax_add_to_cart'),
     path('ajax-remove-from-cart/', views.ajax_remove_from_cart, name='ajax_remove_from_cart'),
-    path('ajax-cart-data/', views.ajax_cart_data, name='ajax_cart_data'),
 
     # ── WISHLIST AJAX ENDPOINTS ──────────────────────────────────────────
+    path('ajax-wishlist-data/', views.ajax_wishlist_data, name='ajax_wishlist_data'),
     path('ajax-add-to-wishlist/', views.ajax_add_to_wishlist, name='ajax_add_to_wishlist'),
     path('ajax-remove-from-wishlist/', views.ajax_remove_from_wishlist, name='ajax_remove_from_wishlist'),
-    path('ajax-wishlist-data/', views.ajax_wishlist_data, name='ajax_wishlist_data'),
     path('ajax-wishlist-to-cart/', views.ajax_wishlist_to_cart, name='ajax_wishlist_to_cart'),
 
     # ── ORDERS AJAX ──────────────────────────────────────────────────────
     path('ajax-orders/', views.ajax_orders, name='ajax_orders'),
 
     # ── STRIPE PAYMENT ENDPOINTS ─────────────────────────────────────────
-    # JS calls /create-checkout-session/
     path('create-checkout-session/', views.CreateCheckoutSession.as_view(), name='checkout'),
     path('success/', views.PaymentSuccess.as_view(), name='success'),
     path('stripe-webhook/', views.stripe_webhook, name='stripe_webhook'),

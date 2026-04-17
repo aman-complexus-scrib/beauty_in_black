@@ -581,7 +581,6 @@ def stripe_webhook(request):
 
 # ── REVIEW ────────────────────────────────────────────────────────────
 
-@login_required
 def review_page(request):
     """GET  →  render review.html
        POST →  save the review and redirect to homepage
@@ -623,4 +622,3 @@ def review_page(request):
     product_id = request.GET.get('product_id', '')
     product    = Product.objects.filter(id=product_id).first() if product_id else None
     return render(request, 'review.html', {'product': product})
-

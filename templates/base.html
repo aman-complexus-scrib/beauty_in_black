@@ -180,12 +180,8 @@
         <p class="text-muted text-center py-4">Your wishlist is empty.</p>
     </div>
     <div class="panel-footer">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <strong>Total:</strong>
-            <strong id="cart-total-display">£0.00</strong>
-        </div>
-        <button class="btn-panel-primary w-100" onclick="openCheckout()">
-            Proceed to Checkout
+        <button class="btn-panel-primary w-100" onclick="moveAllWishlistToCart()">
+            Add All to Bag
         </button>
     </div>
 </div>
@@ -253,7 +249,7 @@
             background:#2C1810;color:#E8D5B0;padding:14px 22px;
             border-left:3px solid #C9A96E;font-family:'Jost',sans-serif;
             font-size:0.88rem;box-shadow:0 4px 20px rgba(0,0,0,0.35);
-            display:none;align-items:center;gap:10px;min-width:260px;">
+            align-items:center;gap:10px;min-width:260px;">
     <i id="bib-toast-icon" class="fas fa-check-circle" style="color:#C9A96E;font-size:1.1rem;"></i>
     <span id="bib-toast-msg">Done!</span>
 </div>
@@ -266,11 +262,10 @@
 
                 <div class="col-md-4 col-lg-3 mb-4">
                     <div>
-                        <!-- CHANGED: logo-icon.png → logo-full.png to match header -->
                         <img src="{% static 'images/logo-full.png' %}" alt="Beauty In Black Logo" class="logo-img">
                         <span style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:400;letter-spacing:0.1em;text-transform:uppercase;color:#C9A96E;display:block;margin-bottom:4px;">Beauty in Black</span>
                         <span style="font-family:'Jost',sans-serif;font-size:0.72rem;font-weight:300;letter-spacing:0.1em;color:rgba(232,213,176,0.65);display:block;margin-bottom:16px;">Premium Afro Hair &amp; Beauty · UK</span>
-                        <p style="font-size:0.8rem;color:rgba(232,213,176,0.7);line-height:1.75;margin-bottom:20px;">Celebrating the beauty of melanin-rich hair and skin. We source the finest Afro care products so your crown always shines.</p>
+                        <p style="font-size:0.8rem;color:rgba(232,232,176,0.7);line-height:1.75;margin-bottom:20px;">Celebrating the beauty of melanin-rich hair and skin. We source the finest Afro care products so your crown always shines.</p>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <a href="https://www.facebook.com/BlackIsBeautyUK/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid rgba(201,169,110,0.35);color:#E8D5B0;font-size:0.88rem;transition:all 0.2s;text-decoration:none;" title="Facebook"><i class="fab fa-facebook-f"></i></a>
                             <a href="https://www.instagram.com/blackisbeautyuk/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid rgba(201,169,110,0.35);color:#E8D5B0;font-size:0.88rem;transition:all 0.2s;text-decoration:none;" title="Instagram"><i class="fab fa-instagram"></i></a>
@@ -386,7 +381,10 @@
     }
 })();
 
-/* ─── CSRF helper ───────────────────────────────────────────── */
+/* ─── CSRF HELPER ───────────────────────────────────────────── */
+/* Reads the csrftoken cookie. This works because CSRF_COOKIE_HTTPONLY
+   is set to False in settings.py — if it were True, this would always
+   return '' and every POST would fail with 403 Forbidden.            */
 function getCookie(name) {
     var m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
     return m ? decodeURIComponent(m[2]) : '';
@@ -394,25 +392,45 @@ function getCookie(name) {
 
 function apiFetch(url, data) {
     return fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        method:  'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken':  getCookie('csrftoken')
+        },
         body: JSON.stringify(data)
-    }).then(function(r){ return r.json(); });
+    }).then(function (r) { return r.json(); });
 }
 
 /* ─── TOAST ────────────────────────────────────────────────── */
 function showToast(msg, ok) {
     var t = document.getElementById('bib-toast');
     var i = document.getElementById('bib-toast-icon');
-    document.getElementById('bib-toast-msg').textContent = msg;
-    if (i) i.className = ok === false
-        ? 'fas fa-exclamation-circle'
-        : 'fas fa-check-circle';
+    var m = document.getElementById('bib-toast-msg');
+    if (!t || !m) return;
+    m.textContent = msg;
+    if (i) {
+        i.className = (ok === false)
+            ? 'fas fa-exclamation-circle'
+            : 'fas fa-check-circle';
+    }
     t.style.display = 'flex';
-    setTimeout(function(){ t.style.display = 'none'; }, 3000);
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(function () { t.style.display = 'none'; }, 3000);
 }
 
-/* ─── SIDE PANEL helpers ───────────────────────────────────── */
+/* ─── CART BADGE ───────────────────────────────────────────── */
+function updateCartBadge(count) {
+    var badge = document.getElementById('cart-badge');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent  = count;
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+/* ─── SIDE PANEL HELPERS ───────────────────────────────────── */
 function openPanel(id) {
     closeAllPanels();
     var p = document.getElementById(id);
@@ -422,11 +440,12 @@ function openPanel(id) {
     if (b) b.style.display = 'block';
     document.body.style.overflow = 'hidden';
     if (id === 'cart-panel')     loadCartPanel();
+    if (id === 'wishlist-panel') loadWishlistPanel();
     if (id === 'orders-panel')   loadOrdersPanel();
 }
 
 function closeAllPanels() {
-    document.querySelectorAll('.side-panel').forEach(function(p){
+    document.querySelectorAll('.side-panel').forEach(function (p) {
         p.style.right = p.classList.contains('side-panel-wide') ? '-700px' : '-480px';
     });
     var b = document.getElementById('panel-backdrop');
@@ -434,26 +453,29 @@ function closeAllPanels() {
     document.body.style.overflow = '';
 }
 
-/* ─── CART ─────────────────────────────────────────────────── */
+/* ─── CART PANEL ───────────────────────────────────────────── */
 function loadCartPanel() {
     fetch('/ajax-cart-data/')
-        .then(function(r){ return r.json(); })
-        .then(function(data){
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
             updateCartBadge(data.count);
             var body  = document.getElementById('cart-panel-body');
             var total = document.getElementById('cart-total-display');
-            if (total) total.textContent = '£' + parseFloat(data.total).toFixed(2);
-            var ct    = document.getElementById('checkout-total-display');
-            if (ct)    ct.textContent = '£' + parseFloat(data.total).toFixed(2);
-            if (!data.items.length) {
+            if (total) total.textContent = '£' + parseFloat(data.total || 0).toFixed(2);
+            var ct = document.getElementById('checkout-total-display');
+            if (ct) ct.textContent = '£' + parseFloat(data.total || 0).toFixed(2);
+            if (!body) return;
+            if (!data.items || !data.items.length) {
                 body.innerHTML = '<p class="text-muted text-center py-5">Your bag is empty.</p>';
                 return;
             }
             var html = '<div class="cart-item-list">';
-            data.items.forEach(function(item){
+            data.items.forEach(function (item) {
                 html += '<div class="cart-item" id="ci-' + item.product_id + '">'
                     + '<div class="cart-item-info">'
-                    + (item.image ? '<img src="' + item.image + '" alt="' + item.name + '" class="cart-item-img">' : '<div class="cart-item-img-placeholder"><i class="fas fa-image"></i></div>')
+                    + (item.image
+                        ? '<img src="' + item.image + '" alt="' + item.name + '" class="cart-item-img">'
+                        : '<div class="cart-item-img-placeholder"><i class="fas fa-image"></i></div>')
                     + '<div>'
                     + '<p class="cart-item-name">' + item.name + '</p>'
                     + '<p class="cart-item-meta">Qty ' + item.quantity + ' · £' + parseFloat(item.subtotal).toFixed(2) + '</p>'
@@ -464,23 +486,14 @@ function loadCartPanel() {
             });
             html += '</div>';
             body.innerHTML = html;
-        });
+        })
+        .catch(function (err) { console.error('loadCartPanel error:', err); });
 }
 
-function updateCartBadge(count) {
-    var badge = document.getElementById('cart-badge');
-    if (!badge) return;
-    if (count > 0) {
-        badge.textContent = count;
-        badge.style.display = 'inline-flex';
-    } else {
-        badge.style.display = 'none';
-    }
-}
-
+/* ─── ADD TO CART ──────────────────────────────────────────── */
 function addToCart(productId, btn) {
     apiFetch('/ajax-add-to-cart/', { product_id: productId, quantity: 1 })
-        .then(function(data){
+        .then(function (data) {
             if (data.error === 'login_required') {
                 window.location.href = '/login/';
                 return;
@@ -490,51 +503,134 @@ function addToCart(productId, btn) {
                 showToast('Added to bag!');
                 if (btn) {
                     btn.textContent = 'Remove';
-                    btn.classList.remove('btn-add-state');
-                    btn.classList.add('btn-remove-state');
+                    btn.className   = 'btn-remove-state';
                     btn.setAttribute('onclick', 'removeFromCartBtn(' + productId + ', this)');
                 }
+            } else {
+                showToast(data.error || 'Could not add item.', false);
             }
-        });
+        })
+        .catch(function (err) { console.error('addToCart error:', err); });
 }
 
+/* ─── REMOVE FROM CART (product card button) ───────────────── */
 function removeFromCartBtn(productId, btn) {
     apiFetch('/ajax-remove-from-cart/', { product_id: productId })
-        .then(function(data){
+        .then(function (data) {
             if (data.success) {
                 updateCartBadge(data.cart_count);
                 showToast('Removed from bag.');
                 if (btn) {
                     btn.textContent = 'Add to Bag';
-                    btn.classList.remove('btn-remove-state');
-                    btn.classList.add('btn-add-state');
+                    btn.className   = 'btn-add-state';
                     btn.setAttribute('onclick', 'addToCart(' + productId + ', this)');
                 }
             }
-        });
+        })
+        .catch(function (err) { console.error('removeFromCartBtn error:', err); });
 }
 
+/* ─── REMOVE FROM CART (cart panel ×) ─────────────────────── */
 function removeFromCart(productId) {
     apiFetch('/ajax-remove-from-cart/', { product_id: productId })
-        .then(function(data){
+        .then(function (data) {
             if (data.success) {
                 updateCartBadge(data.cart_count);
                 var el = document.getElementById('ci-' + productId);
                 if (el) el.remove();
                 var tot = document.getElementById('cart-total-display');
-                if (tot) tot.textContent = '£' + parseFloat(data.cart_total).toFixed(2);
+                if (tot) tot.textContent = '£' + parseFloat(data.cart_total || 0).toFixed(2);
                 showToast('Removed from bag.');
+            }
+        })
+        .catch(function (err) { console.error('removeFromCart error:', err); });
+}
+
+/* ─── WISHLIST PANEL ───────────────────────────────────────── */
+function loadWishlistPanel() {
+    fetch('/ajax-wishlist-data/')
+        .then(function (r) { return r.json(); })
+        .then(function (data) { renderWishlistPanel(data.items); })
+        .catch(function (err) { console.error('loadWishlistPanel error:', err); });
+}
+
+function renderWishlistPanel(items) {
+    var body = document.getElementById('wishlist-panel-body');
+    if (!body) return;
+    if (!items || !items.length) {
+        body.innerHTML = '<p class="text-muted text-center py-5">Your wishlist is empty.</p>';
+        return;
+    }
+    var html = '<div class="cart-item-list">';
+    items.forEach(function (item) {
+        html += '<div class="cart-item" id="wi-' + item.product_id + '">'
+            + '<div class="cart-item-info">'
+            + (item.image
+                ? '<img src="' + item.image + '" alt="' + item.name + '" class="cart-item-img">'
+                : '<div class="cart-item-img-placeholder"><i class="fas fa-image"></i></div>')
+            + '<div>'
+            + '<p class="cart-item-name">' + item.name + '</p>'
+            + '<p class="cart-item-meta">£' + parseFloat(item.price).toFixed(2) + '</p>'
+            + '</div></div>'
+            + '<div style="display:flex;flex-direction:column;gap:4px;">'
+            + '<button class="btn-add-state" style="font-size:0.65rem;padding:6px 8px;" '
+            +   'onclick="moveWishlistItemToCart(' + item.product_id + ')">Add to Bag</button>'
+            + '<button class="cart-item-remove" onclick="removeWishlistItem(' + item.product_id + ')" title="Remove">'
+            +   '<i class="fas fa-times"></i></button>'
+            + '</div>'
+            + '</div>';
+    });
+    html += '</div>';
+    body.innerHTML = html;
+}
+
+function moveWishlistItemToCart(productId) {
+    apiFetch('/ajax-wishlist-to-cart/', { product_id: productId })
+        .then(function (data) {
+            if (data.success) {
+                updateCartBadge(data.cart_count);
+                loadWishlistPanel();
+                showToast('Added to your bag!');
             }
         });
 }
 
-/* ─── WISHLIST ─────────────────────────────────────────────── */
+function moveAllWishlistToCart() {
+    var items = document.querySelectorAll('[id^="wi-"]');
+    if (!items.length) { showToast('Wishlist is empty.', false); return; }
+    var promises = [];
+    items.forEach(function (el) {
+        var pid = parseInt(el.id.replace('wi-', ''));
+        promises.push(apiFetch('/ajax-wishlist-to-cart/', { product_id: pid }));
+    });
+    Promise.all(promises).then(function (results) {
+        var last = results[results.length - 1];
+        if (last && last.cart_count !== undefined) updateCartBadge(last.cart_count);
+        loadWishlistPanel();
+        showToast('All wishlist items added to bag!');
+    });
+}
+
+function removeWishlistItem(productId) {
+    apiFetch('/ajax-remove-from-wishlist/', { product_id: productId })
+        .then(function (data) {
+            if (data.success) {
+                loadWishlistPanel();
+                showToast('Removed from wishlist.');
+            }
+        });
+}
+
+/* ─── TOGGLE WISHLIST (heart button on product card) ───────── */
 function toggleWishlist(productId, btn) {
     var inWishlist = btn.classList.contains('wishlist-active');
     var url = inWishlist ? '/ajax-remove-from-wishlist/' : '/ajax-add-to-wishlist/';
     apiFetch(url, { product_id: productId })
-        .then(function(data){
-            if (data.error === 'login_required') { window.location.href='/login/'; return; }
+        .then(function (data) {
+            if (data.error === 'login_required') {
+                window.location.href = '/login/';
+                return;
+            }
             if (data.success) {
                 btn.classList.toggle('wishlist-active');
                 var icon = btn.querySelector('i');
@@ -550,15 +646,16 @@ function toggleWishlist(productId, btn) {
 /* ─── ORDERS PANEL ─────────────────────────────────────────── */
 function loadOrdersPanel() {
     fetch('/ajax-orders/')
-        .then(function(r){ return r.json(); })
-        .then(function(data){
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
             var body = document.getElementById('orders-panel-body');
-            if (!data.orders.length) {
+            if (!body) return;
+            if (!data.orders || !data.orders.length) {
                 body.innerHTML = '<p class="text-muted text-center py-5">No orders yet.</p>';
                 return;
             }
             var html = '';
-            data.orders.forEach(function(o){
+            data.orders.forEach(function (o) {
                 html += '<div class="order-item">'
                     + '<div class="d-flex justify-content-between align-items-start">'
                     + '<div>'
@@ -572,13 +669,15 @@ function loadOrdersPanel() {
                     + '</div>';
             });
             body.innerHTML = html;
-        });
+        })
+        .catch(function (err) { console.error('loadOrdersPanel error:', err); });
 }
 
 /* ─── PRODUCT DETAIL PANEL ──────────────────────────────────── */
 function openProductDetail(productId, name, price, imageUrl, description, categoryName, inCart, inWishlist) {
     openPanel('product-detail-panel');
     var body = document.getElementById('product-detail-body');
+    if (!body) return;
 
     var starsHtml = '';
     for (var i = 1; i <= 5; i++) {
@@ -603,7 +702,8 @@ function openProductDetail(productId, name, price, imageUrl, description, catego
         + '<div class="prd-detail-info">'
         + '<p class="prd-detail-category">' + (categoryName || '') + '</p>'
         + '<h3 class="prd-detail-name">' + name + '</h3>'
-        + '<div class="prd-detail-stars mb-2">' + starsHtml + ' <span style="font-size:0.78rem;opacity:0.6;margin-left:4px;">(4.0)</span></div>'
+        + '<div class="prd-detail-stars mb-2">' + starsHtml
+        + ' <span style="font-size:0.78rem;opacity:0.6;margin-left:4px;">(4.0)</span></div>'
         + '<p class="prd-detail-price">£' + parseFloat(price).toFixed(2) + '</p>'
         + '<p class="prd-detail-desc">' + (description || 'No description available.') + '</p>'
         + '<div class="prd-detail-actions">'
@@ -619,14 +719,14 @@ function openProductDetail(productId, name, price, imageUrl, description, catego
 function openCheckout() {
     closeAllPanels();
     fetch('/ajax-cart-data/')
-        .then(function(r){ return r.json(); })
-        .then(function(data){
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
             var summary = document.getElementById('checkout-summary');
             var total   = document.getElementById('checkout-total-display');
-            if (total) total.textContent = '£' + parseFloat(data.total).toFixed(2);
+            if (total) total.textContent = '£' + parseFloat(data.total || 0).toFixed(2);
             if (summary) {
                 var html = '';
-                data.items.forEach(function(item){
+                (data.items || []).forEach(function (item) {
                     html += '<div class="checkout-summary-item">'
                         + '<span>' + item.name + ' x' + item.quantity + '</span>'
                         + '<span>£' + parseFloat(item.subtotal).toFixed(2) + '</span>'
@@ -648,12 +748,15 @@ function submitCheckout() {
     }
 
     fetch('/create-checkout-session/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        method:  'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken':  getCookie('csrftoken')
+        },
         body: JSON.stringify({ address: address, phone: phone })
     })
-    .then(function(r){ return r.json(); })
-    .then(function(data){
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
         if (data.url) {
             window.location.href = data.url;
         } else {
@@ -663,16 +766,24 @@ function submitCheckout() {
 }
 
 /* ─── NEWSLETTER ─────────────────────────────────────────────── */
-document.querySelectorAll('.js-newsletter-form').forEach(function(form){
-    form.addEventListener('submit', function(e){
+document.querySelectorAll('.js-newsletter-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
         e.preventDefault();
         var input = form.querySelector('input[type="email"]');
         if (input && input.value) {
             input.value = '';
             input.placeholder = '✓ Thank you for subscribing!';
-            setTimeout(function(){ input.placeholder = 'Your email…'; }, 3000);
+            setTimeout(function () { input.placeholder = 'Your email…'; }, 3000);
         }
     });
+});
+
+/* ─── INIT: sync cart badge on every page load ───────────────── */
+document.addEventListener('DOMContentLoaded', function () {
+    fetch('/ajax-cart-data/')
+        .then(function (r) { return r.json(); })
+        .then(function (data) { updateCartBadge(data.count); })
+        .catch(function () {});
 });
 </script>
 

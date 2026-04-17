@@ -689,7 +689,8 @@ function updateCartBadge(count) {
 
 function showToast(msg) {
     console.log("Toast:", msg);
-    alert(msg); // You can replace this with a fancy toast notification later
+    // You can replace this alert with a custom toast notification div
+    alert(msg); 
 }
 
 /* ── INITIALIZATION ── */
@@ -700,7 +701,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadWishlistPanel();
 });
 
-/* ── MAIN ACTIONS: ADD / REMOVE ── */
+/* ── MAIN ACTIONS ── */
 function addToCart(productId, btnElement) {
     fetch('/ajax-add-to-cart/', {
         method: 'POST',
@@ -762,102 +763,97 @@ function toggleWishlist(productId, btnElement) {
     });
 }
 
-/* ── WISHLIST PANEL LOGIC ── */
+/* ── WISHLIST PANEL UI ── */
 function openWishlistPanel() {
-    const panel = document.getElementById('wishlistPanel');
-    const overlay = document.getElementById('wishlistOverlay');
-    if(panel) panel.style.display = 'block';
-    if(overlay) overlay.style.display = 'block';
-    loadWishlistPanel();
+    var panel   = document.getElementById('wishlistPanel');
+    var overlay = document.getElementById('wishlistOverlay');
+    if (panel)   panel.style.display   = 'block';
+    if (overlay) overlay.style.display = 'block';
+    loadIndexWishlistPanel();
 }
 
 function closeWishlistPanel() {
-    const panel = document.getElementById('wishlistPanel');
-    const overlay = document.getElementById('wishlistOverlay');
-    if(panel) panel.style.display = 'none';
-    if(overlay) overlay.style.display = 'none';
+    var panel   = document.getElementById('wishlistPanel');
+    var overlay = document.getElementById('wishlistOverlay');
+    if (panel)   panel.style.display   = 'none';
+    if (overlay) overlay.style.display = 'none';
 }
 
-function loadWishlistPanel() {
+function loadIndexWishlistPanel() {
     fetch('/ajax-wishlist-data/')
-        .then(r => r.json())
-        .then(data => { renderWishlistPanel(data.items); });
+        .then(function (r) { return r.json(); })
+        .then(function (data) { renderIndexWishlistPanel(data.items); })
+        .catch(function (err) { console.error('loadIndexWishlistPanel error:', err); });
 }
 
-function renderWishlistPanel(items) {
-    const container = document.getElementById('wishlistItemsContainer');
+function renderIndexWishlistPanel(items) {
+    var container = document.getElementById('wishlistItemsContainer');
     if (!container) return;
-    if (!items || items.length === 0) {
-        container.innerHTML = '<p style="text-align:center; padding:20px;">Your wishlist is empty.</p>';
+    var btn = document.getElementById('wishlistAddAllBtn');
+
+    if (!items || !items.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">Your wishlist is empty.</p>';
+        if (btn) btn.style.display = 'none';
         return;
     }
-    let html = '';
-    items.forEach(item => {
-        html += `
-            <div class="wishlist-item" id="wl-item-${item.product_id}" style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee;">
-                <img src="${item.image}" style="width:50px; height:50px; object-fit:cover;">
-                <div style="flex:1;">
-                    <p style="margin:0; font-size:0.85rem;">${item.name}</p>
-                    <p style="margin:0; font-size:0.8rem; color:gray;">£${item.price}</p>
-                </div>
-                <button onclick="moveWishlistItemToCart(${item.product_id})" style="font-size:0.7rem;">Add to Bag</button>
-                <button onclick="removeWishlistItem(${item.product_id})" style="font-size:0.7rem;">×</button>
-            </div>`;
+
+    if (btn) btn.style.display = 'block';
+
+    var html = '';
+    items.forEach(function (item) {
+        html += '<div id="wl-item-' + item.product_id + '" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(201,169,110,0.15);">';
+        html += item.image
+            ? '<img src="' + item.image + '" style="width:48px;height:48px;object-fit:cover;border-radius:3px;">'
+            : '<div style="width:48px;height:48px;background:var(--bg-soft);border-radius:3px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-image" style="color:var(--text-muted);"></i></div>';
+        html += '<div style="flex:1;">'
+            + '<p style="margin:0;font-size:0.82rem;font-weight:500;color:var(--text-main);">' + item.name + '</p>'
+            + '<p style="margin:0;font-size:0.78rem;color:var(--accent);">£' + parseFloat(item.price).toFixed(2) + '</p>'
+            + '</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:5px;">'
+            + '<button onclick="indexMoveToCart(' + item.product_id + ')" style="background:var(--gold);border:none;padding:5px 10px;font-size:0.7rem;cursor:pointer;color:var(--brown-dark);">Add to Bag</button>'
+            + '<button onclick="indexRemoveWishlist(' + item.product_id + ')" style="background:transparent;border:1px solid rgba(201,169,110,0.3);padding:4px 10px;font-size:0.7rem;cursor:pointer;color:var(--text-muted);">Remove</button>'
+            + '</div>';
+        html += '</div>';
     });
     container.innerHTML = html;
 }
 
-/* ── WISHLIST TO CART ACTIONS ── */
-function moveWishlistItemToCart(productId) {
-    fetch('/ajax-wishlist-to-cart/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ product_id: productId })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            updateCartBadge(data.cart_count);
-            loadWishlistPanel();
-            showToast('Added to your bag!');
-        }
-    });
+function indexMoveToCart(productId) {
+    /* Uses apiFetch from base.html — do not redefine apiFetch here */
+    apiFetch('/ajax-wishlist-to-cart/', { product_id: productId })
+        .then(function (data) {
+            if (data.success) {
+                updateCartBadge(data.cart_count);
+                loadIndexWishlistPanel();
+                showToast('Added to your bag!');
+            }
+        });
 }
 
-function removeWishlistItem(productId) {
-    fetch('/ajax-remove-from-wishlist/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ product_id: productId })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            loadWishlistPanel();
-            showToast('Removed from wishlist.');
-        }
-    });
+function indexRemoveWishlist(productId) {
+    apiFetch('/ajax-remove-from-wishlist/', { product_id: productId })
+        .then(function (data) {
+            if (data.success) {
+                loadIndexWishlistPanel();
+                showToast('Removed from wishlist.');
+            }
+        });
 }
 
 function moveAllWishlistToCart() {
-    // This calls the specific 'move_all' logic in your views.py
-    fetch('/ajax-wishlist-to-cart/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ move_all: true })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            updateCartBadge(data.cart_count);
-            loadWishlistPanel();
-            showToast('All wishlist items moved to bag!');
-        }
+    var items = document.querySelectorAll('[id^="wl-item-"]');
+    if (!items.length) { showToast('Wishlist is empty.', false); return; }
+    var promises = [];
+    items.forEach(function (el) {
+        var pid = parseInt(el.id.replace('wl-item-', ''));
+        promises.push(apiFetch('/ajax-wishlist-to-cart/', { product_id: pid }));
     });
-}
-
-function redirectToCheckout() {
-    window.location.href = '/create-checkout-session/';
+    Promise.all(promises).then(function (results) {
+        var last = results[results.length - 1];
+        if (last && last.cart_count !== undefined) updateCartBadge(last.cart_count);
+        loadIndexWishlistPanel();
+        showToast('All wishlist items added to bag!');
+    });
 }
 </script>
 {% endblock %}

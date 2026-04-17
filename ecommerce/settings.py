@@ -5,7 +5,6 @@ from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
 
-# 1. Load environment variables first
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,7 +20,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '.vercel.app',
     '.now.sh',
-    'beautyinblack.co.uk', 
+    'beautyinblack.co.uk',
     'www.beautyinblack.co.uk',
     'beautyinblack.wasmer.app',
 ]
@@ -40,15 +39,15 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'cloudinary_storage', 
+    'cloudinary_storage',
     'django.contrib.staticfiles',
-    'cloudinary',         
+    'cloudinary',
     'store',
 ]
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_KEY':    os.getenv('CLOUDINARY_API_KEY'),
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
 }
 
@@ -90,8 +89,6 @@ TEMPLATES = [
 # ------------------------------------------------------------------------------
 # DATABASE (Neon PostgreSQL)
 # ------------------------------------------------------------------------------
-# We fetch the URL. If it's missing, this setup will fall back to SQLite 
-# so the site doesn't completely crash, giving us a clear signal.
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 if DATABASE_URL:
@@ -103,7 +100,6 @@ if DATABASE_URL:
         )
     }
 else:
-    # If Vercel fails to provide the URL, fallback to local SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -116,13 +112,16 @@ else:
 # ------------------------------------------------------------------------------
 AUTH_USER_MODEL = 'store.Customer'
 
-# Using standard database-backed sessions so the Admin login works perfectly
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 1209600
+SESSION_ENGINE          = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE      = 1209600
 SESSION_SAVE_EVERY_REQUEST = False
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE   = True
+
+# ── CSRF ──────────────────────────────────────────────────────────────────────
+CSRF_COOKIE_SECURE   = True
+CSRF_COOKIE_HTTPONLY = False  
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -131,9 +130,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+LOGIN_URL            = '/login/'
+LOGIN_REDIRECT_URL   = '/'
+LOGOUT_REDIRECT_URL  = '/'
 
 # ------------------------------------------------------------------------------
 # INTERNATIONALISATION
@@ -146,11 +145,11 @@ USE_TZ        = True
 # ------------------------------------------------------------------------------
 # STATIC & MEDIA FILES
 # ------------------------------------------------------------------------------
-STATIC_URL  = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_URL       = '/static/'
+STATIC_ROOT      = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
+STATICFILES_STORAGE          = 'whitenoise.storage.StaticFilesStorage'
 WHITENOISE_KEEP_FILES_ON_REMOTE = True
 
 MEDIA_URL  = '/media/'
