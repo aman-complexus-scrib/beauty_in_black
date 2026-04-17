@@ -662,18 +662,17 @@
 
 {% block scripts %}
 <script>
-// ── PAGE INIT ────────────────────────────────────────────────
+/* ── PAGE INIT ─────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function () {
-    // Sync cart badge on page load using base.html's loadCartPanel data
+    // Sync cart badge on load using base.html's already-correct endpoint
     fetch('/ajax-cart-data/')
         .then(function(r){ return r.json(); })
         .then(function(data){ updateCartBadge(data.count); });
 
-    // Pre-load wishlist panel data in the background
     loadWishlistPanel();
 });
 
-// ── WISHLIST PANEL ───────────────────────────────────────────
+/* ── WISHLIST PANEL ────────────────────────────────────────── */
 function openWishlistPanel() {
     document.getElementById('wishlistPanel').style.display = 'block';
     document.getElementById('wishlistOverlay').style.display = 'block';
@@ -694,7 +693,6 @@ function loadWishlistPanel() {
 function renderWishlistPanel(items) {
     var container = document.getElementById('wishlistItemsContainer');
     if (!container) return;
-
     var btn = document.getElementById('wishlistAddAllBtn');
 
     if (!items || items.length === 0) {
@@ -704,7 +702,6 @@ function renderWishlistPanel(items) {
     }
 
     if (btn) btn.style.display = 'block';
-
     var html = '';
     items.forEach(function(item) {
         html += '<div id="wl-item-' + item.product_id + '" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(201,169,110,0.15);">';
@@ -749,8 +746,8 @@ function moveAllWishlistToCart() {
     var items = document.querySelectorAll('[id^="wl-item-"]');
     var promises = [];
     items.forEach(function(el) {
-        var pid = el.id.replace('wl-item-', '');
-        promises.push(apiFetch('/ajax-wishlist-to-cart/', { product_id: parseInt(pid) }));
+        var pid = parseInt(el.id.replace('wl-item-', ''));
+        promises.push(apiFetch('/ajax-wishlist-to-cart/', { product_id: pid }));
     });
     Promise.all(promises).then(function(results) {
         var last = results[results.length - 1];
